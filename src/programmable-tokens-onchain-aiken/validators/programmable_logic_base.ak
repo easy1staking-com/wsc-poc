@@ -19,16 +19,13 @@ validator programmable_logic_base(stake_cred: Credential) {
     // via the withdraw-zero pattern
 
     // Check that the stake credential is invoked
-    expect
-      list.any(
-        self.withdrawals,
-        fn(wdrl) {
-          let Pair(cred, _amount) = wdrl
-          cred == stake_cred
-        },
-      )
-
-    True
+    list.any(
+      self.withdrawals,
+      fn(wdrl) {
+        let Pair(cred, _amount) = wdrl
+        cred == stake_cred
+      },
+    )
   }
 
   else(_) {
