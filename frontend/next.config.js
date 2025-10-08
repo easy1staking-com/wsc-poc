@@ -4,9 +4,9 @@ const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 /**
  * Webpack config used in all environments
- * @param {*} config 
- * @param {*} param1 
- * @returns 
+ * @param {*} config
+ * @param {*} param1
+ * @returns
  */
 const webpackConfig = (config, { isServer }) => {
   // Ensure `resolve.plugins` exists
@@ -26,92 +26,108 @@ const webpackConfig = (config, { isServer }) => {
   if (!isServer) {
     config.output.environment = { ...config.output.environment, asyncFunction: true };
   }
-  
+
   return config;
 };
 
-module.exports = (phase, {defaultConfig}) => {
-  if (phase === PHASE_DEVELOPMENT_SERVER) {
-    return {
-      /* NextJS development-only config options here */
-      serverExternalPackages: [
-        "@lucid-evolution/lucid",
-      ],
-      async headers() {
-        return [
-          {
-            // matching all API routes
-            source: "/api/v1/:path*",
-            headers: [
-              { key: "Access-Control-Allow-Credentials", value: "true" },
-              { key: "Access-Control-Allow-Origin", value: "*" },
-              { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-              { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
-            ]
-          }
+/**
+ * Next.js config for development
+ */
+const nextConfigDev = {
+  serverExternalPackages: [
+    "@lucid-evolution/lucid",
+  ],
+  async headers() {
+    return [
+      {
+        // matching all API routes
+        source: "/api/v1/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Credentials", value: "true" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
         ]
+      }
+    ];
+  },
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    return [
+      {
+        source: '/api/v1/:path*', // Match all routes starting with /api/v1/
+        destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
       },
-      async rewrites() {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        return [
-          {
-            source: '/api/v1/:path*', // Match all routes starting with /api/v1/
-            destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
-          },
-          {
-            source: '/blockfrost-key', // Match all routes starting with /api/v1/
-            destination: `${apiUrl}/blockfrost-key`, // Proxy to backend server
-          },
-        ];
+      {
+        source: '/blockfrost-key', // Match all routes starting with /api/v1/
+        destination: `${apiUrl}/blockfrost-key`, // Proxy to backend server
       },
-      async redirects() {
-        return [
-          {
-            source: '/',
-            destination: '/mint-authority',
-            permanent: true, // Use true for a 301 redirect, false for 302
-          },
-        ];
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/mint-authority',
+        permanent: true, // Use true for a 301 redirect, false for 302
       },
-      experimental: {
-        esmExternals: true, // Ensure modern module support
+    ];
+  },
+  experimental: {
+    esmExternals: true, // Ensure modern module support
+  },
+  webpack: webpackConfig
+};
+
+/**
+ * Next.js config that produces a static page
+ */
+const nextConfigExport = {
+  output: 'export',
+  webpack: webpackConfig,
+  experimental: {
+    esmExternals: true, // Ensure modern module support
+  },
+
+  // https://github.com/Anastasia-Labs/lucid-evolution/issues/437
+  serverExternalPackages: [
+    "@lucid-evolution/lucid"
+  ],
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    return [
+      {
+        source: '/api/v1/:path*', // Match all routes starting with /api/v1/
+        destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
       },
-      webpack: webpackConfig
-    }
-  }
-  // Default NextJS config for other phases (e.g., production, static export)
-  return { 
-    output: 'export',
-    webpack: webpackConfig,
-    experimental: {
-      esmExternals: true, // Ensure modern module support
-    },
-  
-    // https://github.com/Anastasia-Labs/lucid-evolution/issues/437
-    serverExternalPackages: [
-      "@lucid-evolution/lucid"
-    ],
-    async rewrites() {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      return [
-        {
-          source: '/api/v1/:path*', // Match all routes starting with /api/v1/
-          destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
-        },
-        {
-          source: '/blockfrost-key', // Match all routes starting with /api/v1/
-          destination: `${apiUrl}/blockfrost-key`, // Proxy to backend server
-        },
-      ];
-    },
-    async redirects() {
-      return [
-        {
-          source: '/',
-          destination: '/mint-authority',
-          permanent: true, // Use true for a 301 redirect, false for 302
-        },
-      ];
-    }
+      {
+        source: '/blockfrost-key', // Match all routes starting with /api/v1/
+        destination: `${apiUrl}/blockfrost-key`, // Proxy to backend server
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/mint-authority',
+        permanent: true, // Use true for a 301 redirect, false for 302
+      },
+    ];
   }
 }
+
+/**
+ * Next.js config for standalone Docker builds
+ */
+const nextConfigStandalone = {
+  ...nextConfigDev,
+  output: 'standalone',
+}
+
+const nextConfig =
+  (process.env.WST_BUILD === 'export') ? nextConfigExport :
+  (process.env.WST_BUILD === 'standalone') ? nextConfigStandalone :
+  nextConfigDev;
+
+module.exports = nextConfig;

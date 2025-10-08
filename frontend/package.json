@@ -6,10 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "build:prod": "NODE_ENV=production next build",
+    "build:docker": "WST_BUILD=standalone NODE_ENV=production next build",
     "export": "WST_BUILD=export next build",
     "export:prod": "WST_BUILD=export NODE_ENV=production next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:build": "docker build -t wsc-frontend:latest --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080} .",
+    "docker:build:prod": "docker build -t wsc-frontend:prod --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} .",
+    "docker:build:envfile": "docker build -f Dockerfile.envfile -t wsc-frontend:prod .",
+    "docker:run": "docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8080} wsc-frontend:latest",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
