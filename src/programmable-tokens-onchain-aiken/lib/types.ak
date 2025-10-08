@@ -10,6 +10,9 @@ pub const origin_node_tn = #"00"
 
 pub const node_key_tn_prefix = #"01"
 
+/// Protocol parameters NFT token name
+pub const protocol_params_token = "ProtocolParams"
+
 /// Directory node in the linked list of registered programmable token policies
 /// This represents an entry in the CIP-0143 registry
 pub type DirectorySetNode {

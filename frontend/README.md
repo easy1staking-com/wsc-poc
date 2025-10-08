@@ -40,6 +40,23 @@ The template is organized as follows:
         - **`styles`**: Global styles and theme configuration.
         - **`store`**: Minimal lightweight store for global variables, functions, and types.
     
+### Building the App
+
+Environment files:
+- .env.development - for dev (localhost:8080)
+- .env.production - for production (update with your prod URL)
+- .env.local.example - template for local overrides
+
+Changes:
+- next.config.js:93 - now uses NEXT_PUBLIC_API_URL instead of hardcoded localhost
+- package.json - added build:prod and export:prod scripts
+
+Usage:
+- npm run dev - uses .env.development
+- npm run build:prod - uses .env.production
+- npm run export:prod - static export with production env
+
+Update the production URL in .env.production and you're all set!
 
 ### Deploy on Vercel (optional)
 
