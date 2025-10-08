@@ -57,6 +57,10 @@ module.exports = (phase, {defaultConfig}) => {
             source: '/api/v1/:path*', // Match all routes starting with /api/v1/
             destination: 'http://localhost:8080/api/v1/:path*', // Proxy to backend server
           },
+          {
+            source: '/blockfrost-key', // Match all routes starting with /api/v1/
+            destination: 'http://localhost:8080/blockfrost-key', // Proxy to backend server
+          },
         ];
       },
       async redirects() {
@@ -87,4 +91,4 @@ module.exports = (phase, {defaultConfig}) => {
       "@lucid-evolution/lucid"
     ]
   }
-}  
+}
