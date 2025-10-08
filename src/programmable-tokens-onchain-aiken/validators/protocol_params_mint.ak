@@ -8,7 +8,6 @@ use aiken/collection/list
 // 2. Exactly one token is minted with the correct token name
 // 3. The token is sent to an output with an inline datum containing ProgrammableLogicGlobalParams
 
-use cardano/assets
 use cardano/assets.{PolicyId}
 use cardano/transaction.{InlineDatum, Output, OutputReference, Transaction}
 use types.{ProgrammableLogicGlobalParams, protocol_params_token}
@@ -38,7 +37,6 @@ validator protocol_params_mint(utxo_ref: OutputReference) {
       input_spent,
       amount_minted == 1,
     }
-    // Exactly one token minted
   }
 
   else(_) {
