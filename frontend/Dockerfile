@@ -21,12 +21,13 @@ COPY . .
 ARG NODE_ENV=production
 ARG NEXT_PUBLIC_API_URL
 ENV NODE_ENV=${NODE_ENV}
+ENV WST_BUILD=standalone
 
 # If NEXT_PUBLIC_API_URL not provided as build arg, Next.js will use .env.production
 # If provided as build arg, it will override .env.production
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
-# Build the application (will use .env.production if NEXT_PUBLIC_API_URL not set)
+# Build the application in standalone mode for Docker
 RUN npm run build
 
 # Production image, copy all the files and run next

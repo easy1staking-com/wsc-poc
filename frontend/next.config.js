@@ -92,29 +92,7 @@ const nextConfigExport = {
   // https://github.com/Anastasia-Labs/lucid-evolution/issues/437
   serverExternalPackages: [
     "@lucid-evolution/lucid"
-  ],
-  async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    return [
-      {
-        source: '/api/v1/:path*', // Match all routes starting with /api/v1/
-        destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
-      },
-      {
-        source: '/blockfrost-key', // Match all routes starting with /api/v1/
-        destination: `${apiUrl}/blockfrost-key`, // Proxy to backend server
-      },
-    ];
-  },
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/mint-authority',
-        permanent: true, // Use true for a 301 redirect, false for 302
-      },
-    ];
-  }
+  ]
 }
 
 /**
