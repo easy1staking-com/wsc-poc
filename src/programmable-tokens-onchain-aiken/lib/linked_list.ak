@@ -136,21 +136,22 @@ pub fn validate_blacklist_init(
   mint: Value,
   node_cs: PolicyId,
 ) -> Bool {
-  // No node inputs should be spent
-  expect list.is_empty(node_inputs)
-
   // Exactly one node output
   expect [node_output] = node_outputs
   let node = validate_blacklist_node_output(node_output, node_cs)
 
-  // Node must be empty (origin node)
-  expect node.key == #"" && node.next == #""
-
   // Must mint exactly one origin token
   let minted = quantity_of(mint, node_cs, origin_node_tn)
-  expect minted == 1
 
-  True
+  and {
+    // No node inputs should be spent
+    list.is_empty(node_inputs),
+    // Node must be empty (origin node)
+    node.key == #"",
+    node.next == #"",
+    // Must mint exactly one origin token
+    minted == 1,
+  }
 }
 
 /// Check if a directory node represents an insertion at a specific position
