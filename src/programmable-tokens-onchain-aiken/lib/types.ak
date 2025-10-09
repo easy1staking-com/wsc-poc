@@ -99,6 +99,16 @@ pub type BlacklistRedeemer {
   BlacklistRemove { key: ByteArray }
 }
 
+/// Issuance CBOR hex reference data
+/// This contains the prefix and postfix of the minting policy script
+/// Used to validate programmable token registrations
+pub type IssuanceCborHex {
+  /// Prefix bytes of the minting policy script
+  prefix_cbor_hex: ByteArray,
+  /// Postfix bytes of the minting policy script
+  postfix_cbor_hex: ByteArray,
+}
+
 /// Helper to create node key token name from a bytearray key
 pub fn node_key_tn(key: ByteArray) -> ByteArray {
   builtin.append_bytearray(node_key_tn_prefix, key)

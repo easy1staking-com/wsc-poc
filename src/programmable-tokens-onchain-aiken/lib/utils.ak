@@ -157,3 +157,56 @@ pub fn elem_at(lst: List<a>, idx: Int) -> a {
 pub fn bytearray_lt(a: ByteArray, b: ByteArray) -> Bool {
   builtin.less_than_bytearray(a, b)
 }
+
+/// Apply hashed parameter to prefix and postfix to compute policy ID
+/// This reconstructs the minting policy script and hashes it to get the currency symbol
+/// Follows Plutus V3 script format: version_header + prefix + serialized_param + postfix
+pub fn apply_hashed_parameter(
+  prefix: ByteArray,
+  postfix: ByteArray,
+  hashed_param: ByteArray,
+) -> ByteArray {
+  // Plutus V3 version header: most significant first encoding of version 3
+  let version_header = #"03"
+
+  // Build the script: version + prefix + serialized_param + postfix
+  let script_bytes =
+    builtin.append_bytearray(
+      version_header,
+      builtin.append_bytearray(
+        prefix,
+        builtin.append_bytearray(hashed_param, postfix),
+      ),
+    )
+
+  // Hash with blake2b_224 to get the policy ID (28 bytes)
+  builtin.blake2b_224(script_bytes)
+}
+
+/// Check if a currency symbol is a valid programmable token registration
+/// Validates that:
+/// 1. Tokens with this policy ID are being minted in the transaction
+/// 2. The computed policy ID (from prefix + hashed_param + postfix) matches the currency symbol
+pub fn is_programmable_token_registration(
+  cs_to_insert: ByteArray,
+  prefix: ByteArray,
+  postfix: ByteArray,
+  hashed_param: ByteArray,
+  mint_value: Value,
+) -> Bool {
+  // Check 1: The policy must be minting tokens in this transaction
+  let has_minting =
+    list.any(
+      flatten(mint_value),
+      fn(asset) {
+        let (policy, _tn, amt) = asset
+        policy == cs_to_insert && amt > 0
+      },
+    )
+
+  // Check 2: The computed policy ID must match the currency symbol being inserted
+  let computed_cs = apply_hashed_parameter(prefix, postfix, hashed_param)
+  let cs_matches = computed_cs == cs_to_insert
+
+  has_minting && cs_matches
+}
