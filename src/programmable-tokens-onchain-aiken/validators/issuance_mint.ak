@@ -5,7 +5,7 @@ use aiken/collection/list
 
 use cardano/address.{Credential}
 use cardano/assets.{PolicyId, flatten, quantity_of}
-use cardano/transaction.{Output, Transaction}
+use cardano/transaction.{Mint, Output, ScriptPurpose, Transaction}
 use types.{SmartTokenMintingAction}
 
 validator issuance_mint(
@@ -17,9 +17,6 @@ validator issuance_mint(
     own_policy: PolicyId,
     self: Transaction,
   ) {
-    // Validate that the redeemer matches the minting logic credential
-    expect redeemer.minting_logic_cred == minting_logic_cred
-
     // Check that the minting logic script is invoked
     let invoked_scripts =
       list.map(
@@ -29,8 +26,6 @@ validator issuance_mint(
           cred
         },
       )
-
-    expect list.has(invoked_scripts, minting_logic_cred)
 
     // Get the minted/burned amount for this policy
     let own_tokens = flatten(self.mint)
@@ -43,31 +38,77 @@ validator issuance_mint(
         },
       )
 
-    // For POC, we only allow one token name per policy
-    expect list.length(tokens_for_policy) == 1
-
     expect [(_cs, tn, qty)] = tokens_for_policy
 
-    if qty > 0 {
-      // Minting tokens
-      // First output must receive the minted tokens at programmable_logic_base
-      expect [first_output, ..] = self.outputs
+    let valid_minting =
+      if qty > 0 {
+        // Minting tokens
+        // First output must receive the minted tokens at programmable_logic_base
+        expect [first_output, ..] = self.outputs
 
-      expect first_output.address.payment_credential == programmable_logic_base
+        and {
+          first_output.address.payment_credential == programmable_logic_base,
+          quantity_of(first_output.value, own_policy, tn) == qty,
+        }
+      } else if qty < 0 {
+        // Burning tokens - no additional checks needed beyond the minting logic being invoked
+        True
+      } else {
+        // Zero minting is not allowed
+        fail @"Cannot mint zero tokens"
+      }
 
-      expect quantity_of(first_output.value, own_policy, tn) == qty
-
-      True
-    } else if qty < 0 {
-      // Burning tokens - no additional checks needed beyond the minting logic being invoked
-      True
-    } else {
-      // Zero minting is not allowed
-      fail @"Cannot mint zero tokens"
+    and {
+      // Validate that the redeemer matches the minting logic credential
+      redeemer.minting_logic_cred == minting_logic_cred,
+      // substandard minting invoked?
+      list.has(invoked_scripts, minting_logic_cred),
+      // Check that exactly one minting redeemer matches the minting logic credential
+      // This prevents multiple concurrent mints with the same minting logic in one transaction
+      single_mint_with_credential(self.redeemers, redeemer),
+      // For POC, we only allow one token name per policy
+      list.length(tokens_for_policy) == 1,
+      valid_minting,
     }
   }
 
   else(_) {
     fail
   }
+}
+
+/// Check that exactly one minting redeemer with the given action exists in the transaction
+/// This prevents multiple concurrent mints with the same minting logic credential
+///
+/// The logic follows Plutarch's psingleMintWithCredential (lines 145-193):
+/// 1. Scan all redeemers
+/// 2. Filter for Mint purposes only
+/// 3. Count how many match the given redeemer
+/// 4. Ensure exactly one match exists
+fn single_mint_with_credential(
+  redeemers: Pairs<ScriptPurpose, Data>,
+  target_redeemer: SmartTokenMintingAction,
+) -> Bool {
+  let target_redeemer_data: Data = target_redeemer
+
+  let matching_count =
+    list.foldl(
+      redeemers,
+      0,
+      fn(pair, count) {
+        let Pair(purpose, rdmr) = pair
+
+        when purpose is {
+          Mint(_) ->
+            if rdmr == target_redeemer_data {
+              count + 1
+            } else {
+              count
+            }
+          _ -> count
+        }
+      },
+    )
+
+  matching_count == 1
 }
