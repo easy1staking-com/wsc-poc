@@ -258,6 +258,11 @@ fn validate_currency_symbols(
   original_value: Value,
   acc_value: Value,
 ) -> Value {
+  // By the looks of it this multy array traversing/foldin requires the currency_symbols and proofs to be
+  // in the right order. Plutarch data structure makes it implicit to have policies in order.
+  // In aiken seems to be enforced at pairs level where keys are ordered lexicographically.
+  // Is this correct?
+
   when currency_symbols is {
     [] -> acc_value
     [cs, ..rest_cs] ->
