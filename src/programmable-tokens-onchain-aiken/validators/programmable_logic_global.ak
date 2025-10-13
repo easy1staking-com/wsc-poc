@@ -4,7 +4,10 @@ use aiken/collection/list
 // Migrated from SmartTokens.Contracts.ProgrammableLogicBase (mkProgrammableLogicGlobal)
 
 use cardano/address.{Credential, Inline, Script, VerificationKey}
-use cardano/assets.{PolicyId, Value, flatten, merge, negate, zero}
+use cardano/assets.{
+  PolicyId, Value, merge, negate, policies, restricted_to, without_lovelace,
+  zero,
+}
 use cardano/transaction.{Input, Output, Transaction}
 use types.{
   DirectorySetNode, ProgrammableLogicGlobalParams,
@@ -13,7 +16,7 @@ use types.{
 }
 use utils.{
   bytearray_lt, elem_at, expect_inline_datum, has_currency_symbol,
-  is_script_invoked, is_signed_by, strip_ada, value_contains,
+  is_script_invoked, is_signed_by, value_contains,
 }
 
 validator programmable_logic_global(protocol_params_cs: PolicyId) {
@@ -115,11 +118,13 @@ fn validate_transfer(
     )
 
   let output_prog_value = sum_output_values(prog_outputs)
-
-  // The output must contain all the validated programmable tokens
-  expect value_contains(output_prog_value, validated_prog_value)
-
-  True
+  and {
+    // Validate this is a rewarding script (withdraw-zero trick)
+    // Note: We check against prog_logic_cred since that's the stake credential being used
+    is_rewarding_script(tx.redeemers, prog_logic_cred),
+    // The output must contain all the validated programmable tokens
+    value_contains(output_prog_value, validated_prog_value),
+  }
 }
 
 /// Validate a seize action
@@ -155,7 +160,7 @@ fn validate_seize(
 
   // Filter the input value to only include tokens from the seized policy
   let seized_cs = directory_node.key
-  let filtered_value = filter_value_by_cs(seize_input.output.value, seized_cs)
+  let filtered_value = restricted_to(seize_input.output.value, [seized_cs])
 
   // Expected output value is input value with seized tokens removed
   let expected_output_value =
@@ -226,11 +231,9 @@ fn check_transfer_logic_and_filter(
   invoked_scripts: List<Credential>,
 ) -> Value {
   // Get all currency symbols from the value (except Ada)
-  let stripped = strip_ada(value)
-  let assets = flatten(stripped)
-
+  let stripped = without_lovelace(value)
   // Group by currency symbol
-  let currency_symbols = get_unique_currency_symbols(assets)
+  let currency_symbols = policies(stripped)
 
   // For each currency symbol, check the proof
   validate_currency_symbols(
@@ -239,25 +242,9 @@ fn check_transfer_logic_and_filter(
     reference_inputs,
     directory_node_cs,
     invoked_scripts,
+    stripped,
+    // Pass the original value so we can filter by CS
     zero,
-  )
-}
-
-/// Get unique currency symbols from a list of assets
-fn get_unique_currency_symbols(
-  assets: List<(PolicyId, ByteArray, Int)>,
-) -> List<PolicyId> {
-  list.foldl(
-    assets,
-    [],
-    fn(asset, acc) {
-      let (cs, _tn, _qty) = asset
-      if list.has(acc, cs) {
-        acc
-      } else {
-        [cs, ..acc]
-      }
-    },
   )
 }
 
@@ -268,6 +255,7 @@ fn validate_currency_symbols(
   reference_inputs: List<Input>,
   directory_node_cs: PolicyId,
   invoked_scripts: List<Credential>,
+  original_value: Value,
   acc_value: Value,
 ) -> Value {
   when currency_symbols is {
@@ -287,10 +275,9 @@ fn validate_currency_symbols(
 
           let new_acc =
             if validated {
-              // Add this CS to the accumulator (it's a programmable token)
-              // In a real implementation, we'd add the actual token amounts
-              // For simplicity, we just mark it as validated
-              acc_value
+              // Add this CS's tokens from the original value to the accumulator
+              let cs_tokens = restricted_to(original_value, [cs])
+              merge(acc_value, cs_tokens)
             } else {
               // Not a programmable token, skip it
               acc_value
@@ -302,6 +289,7 @@ fn validate_currency_symbols(
             reference_inputs,
             directory_node_cs,
             invoked_scripts,
+            original_value,
             new_acc,
           )
         }
@@ -324,16 +312,14 @@ fn validate_single_cs(
       let node_datum = expect_inline_datum(node_input.output)
       expect node: DirectorySetNode = node_datum
 
-      // Validate this is a legitimate directory node
-      expect has_currency_symbol(node_input.output.value, directory_node_cs)
-
-      // Validate the node's key matches the currency symbol
-      expect node.key == cs
-
-      // Validate the transfer logic script is invoked
-      expect list.has(invoked_scripts, node.transfer_logic_script)
-
-      True
+      and {
+        // Validate this is a legitimate directory node
+        has_currency_symbol(node_input.output.value, directory_node_cs),
+        // Validate the node's key matches the currency symbol
+        node.key == cs,
+        // Validate the transfer logic script is invoked
+        list.has(invoked_scripts, node.transfer_logic_script),
+      }
     }
 
     TokenDoesNotExist { node_idx } -> {
@@ -342,22 +328,31 @@ fn validate_single_cs(
       let node_datum = expect_inline_datum(node_input.output)
       expect node: DirectorySetNode = node_datum
 
-      // Validate this is a legitimate directory node
-      expect has_currency_symbol(node_input.output.value, directory_node_cs)
-
-      // Validate the node covers the currency symbol
-      expect bytearray_lt(node.key, cs)
-      expect bytearray_lt(cs, node.next)
-
       // This is not a programmable token
-      False
+      !and {
+        // Validate this is a legitimate directory node
+        has_currency_symbol(node_input.output.value, directory_node_cs),
+        // Validate the node covers the currency symbol
+        bytearray_lt(node.key, cs),
+        bytearray_lt(cs, node.next),
+      }
     }
   }
 }
 
-/// Filter a value to only include tokens from a specific currency symbol
-fn filter_value_by_cs(_value: Value, _cs: PolicyId) -> Value {
-  // This is a simplified version - in production would need full implementation
-  // For now, we just return zero as a placeholder
-  zero
+/// Check if this is a rewarding script (withdraw-zero trick)
+fn is_rewarding_script(
+  redeemers: Pairs<transaction.ScriptPurpose, transaction.Redeemer>,
+  account: Credential,
+) -> Bool {
+  list.any(
+    redeemers,
+    fn(pair) {
+      let Pair(purpose, _redeemer) = pair
+      when purpose is {
+        transaction.Withdraw(cred) -> cred == account
+        _ -> False
+      }
+    },
+  )
 }

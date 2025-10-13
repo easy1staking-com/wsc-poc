@@ -1,14 +1,12 @@
+use aiken/builtin
+use aiken/collection/dict
+use aiken/collection/list
 // Utility functions for CIP-0143 validators
 // Migrated from various Plutarch utility modules
 
 use cardano/address.{Credential}
-use cardano/assets.{AssetName, PolicyId, Value, flatten, quantity_of, tokens, zero, add, ada_policy_id}
-use cardano/transaction.{
-  InlineDatum, Input, Output, Transaction,
-}
-use aiken/collection/list
-use aiken/collection/dict
-use aiken/builtin
+use cardano/assets.{AssetName, PolicyId, Value, flatten, quantity_of, tokens}
+use cardano/transaction.{InlineDatum, Input, Output, Transaction}
 
 /// Check if a value contains at least the required amount of a specific asset
 pub fn value_contains(value: Value, required: Value) -> Bool {
@@ -72,42 +70,12 @@ pub fn check_single_mint(
   minted == expected_amount && dict.size(policy_tokens) == 1
 }
 
-/// Filter a value to only contain tokens from a specific currency symbol
-pub fn filter_by_currency_symbol(value: Value, cs: PolicyId) -> Value {
-  let policy_tokens = tokens(value, cs)
-  dict.foldl(
-    policy_tokens,
-    zero,
-    fn(tn, qty, acc) { add(acc, cs, tn, qty) },
-  )
-}
-
-/// Strip Ada from a value, keeping only native tokens
-pub fn strip_ada(value: Value) -> Value {
-  let all_assets = flatten(value)
-  list.foldl(
-    all_assets,
-    zero,
-    fn(asset, acc) {
-      let (policy, name, qty) = asset
-      if policy == ada_policy_id {
-        acc
-      } else {
-        add(acc, policy, name, qty)
-      }
-    },
-  )
-}
-
 /// Get all outputs paying to a specific credential
 pub fn outputs_at_credential(
   outputs: List<Output>,
   cred: Credential,
 ) -> List<Output> {
-  list.filter(
-    outputs,
-    fn(output) { output.address.payment_credential == cred },
-  )
+  list.filter(outputs, fn(output) { output.address.payment_credential == cred })
 }
 
 /// Get all inputs spending from a specific credential
