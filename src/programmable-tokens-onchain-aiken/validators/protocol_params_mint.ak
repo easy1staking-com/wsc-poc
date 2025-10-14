@@ -34,8 +34,8 @@ validator protocol_params_mint(utxo_ref: OutputReference) {
     expect _params: ProgrammableLogicGlobalParams = datum
 
     and {
-      input_spent,
-      amount_minted == 1,
+      input_spent?,
+      (amount_minted == 1)?,
     }
   }
 
