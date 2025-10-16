@@ -4,9 +4,11 @@ use cardano/address.{Credential}
 // Linked list validation logic for directory and blacklist
 // Migrated from SmartTokens.LinkedList.Common and SmartTokens.LinkedList.BlacklistCommon
 
-use cardano/assets.{PolicyId, Value, VerificationKey, quantity_of, tokens}
+use cardano/assets.{PolicyId, Value, tokens}
 use cardano/transaction.{Input, Output, Transaction}
-use types.{BlacklistNode, DirectorySetNode, node_key_tn, origin_node_tn}
+use types.{
+  BlacklistNode, DirectorySetNode, empty_vkey, node_key_tn, origin_node_tn,
+}
 use utils.{
   bytearray_lt, check_single_mint, count_unique_tokens, expect_inline_datum,
   has_currency_symbol,
@@ -120,15 +122,15 @@ pub fn validate_directory_init(
 
   and {
     // No node inputs should be spent
-    list.is_empty(node_inputs),
+    list.is_empty(node_inputs)?,
     // Node must be empty (origin node)
-    node.key == #"",
-    node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    node.transfer_logic_script == VerificationKey(#""),
-    node.issuer_logic_script == VerificationKey(#""),
-    node.global_state_cs == #"",
+    (node.key == #"")?,
+    (node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")?,
+    (node.transfer_logic_script == empty_vkey)?,
+    (node.issuer_logic_script == empty_vkey)?,
+    (node.global_state_cs == #"")?,
     // Must mint exactly one origin token and no other tokens from this policy
-    check_single_mint(mint, node_cs, origin_node_tn, 1),
+    check_single_mint(mint, node_cs, origin_node_tn, 1)?,
   }
 }
 
@@ -149,9 +151,6 @@ pub fn validate_blacklist_init(
     // Node must be empty (origin node)
     node.key == #"",
     node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    node.transfer_logic_script == VerificationKey(#""),
-    node.issuer_logic_script == VerificationKey(#""),
-    node.global_state_cs == #"",
     // Must mint exactly one origin token and no other tokens from this policy
     check_single_mint(mint, node_cs, origin_node_tn, 1),
   }

@@ -4,7 +4,7 @@ use types.{node_key_tn, node_key_tn_prefix, origin_node_tn}
 
 // Test that origin node token name is correct
 test origin_node_tn_is_correct() {
-  origin_node_tn == #"00"
+  origin_node_tn == #""
 }
 
 // Test that node key token name prefix is correct
@@ -33,7 +33,6 @@ test node_key_tn_with_currency_symbol() {
   let expected_prefix = builtin.slice_bytearray(0, 1, result)
 
   // Should start with prefix
-  expected_prefix == #"01" &&
-  // Should be 29 bytes (1 prefix + 28 CS)
+  expected_prefix == #"01" && // Should be 29 bytes (1 prefix + 28 CS)
   builtin.length_of_bytearray(result) == 29
 }

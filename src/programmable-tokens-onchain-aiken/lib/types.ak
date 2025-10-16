@@ -2,7 +2,7 @@ use aiken/builtin
 // Core data types for CIP-0143 programmable tokens
 // Migrated from SmartTokens.Types.PTokenDirectory and SmartTokens.Types.ProtocolParams
 
-use cardano/address.{Credential}
+use cardano/address.{Credential, VerificationKey}
 use cardano/assets.{PolicyId}
 
 /// Constants for token names
@@ -12,6 +12,9 @@ pub const node_key_tn_prefix = #"01"
 
 /// Protocol parameters NFT token name
 pub const protocol_params_token = "ProtocolParams"
+
+/// Empty Verification Key
+pub const empty_vkey = VerificationKey(#"")
 
 /// Directory node in the linked list of registered programmable token policies
 /// This represents an entry in the CIP-0143 registry

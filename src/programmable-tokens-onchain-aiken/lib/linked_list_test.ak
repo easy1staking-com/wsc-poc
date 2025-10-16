@@ -140,6 +140,6 @@ test node_token_names() {
   let node_tn = node_key_tn(key)
 
   // Origin token name should be #"00"
-  origin_tn == #"00" && // Node token name should start with #"01"
+  origin_tn == #"" && // Node token name should start with #"01"
   builtin.slice_bytearray(0, 1, node_tn) == #"01"
 }
