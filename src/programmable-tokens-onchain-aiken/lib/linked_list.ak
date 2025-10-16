@@ -4,7 +4,7 @@ use cardano/address.{Credential}
 // Linked list validation logic for directory and blacklist
 // Migrated from SmartTokens.LinkedList.Common and SmartTokens.LinkedList.BlacklistCommon
 
-use cardano/assets.{PolicyId, Value, quantity_of, tokens}
+use cardano/assets.{PolicyId, Value, VerificationKey, quantity_of, tokens}
 use cardano/transaction.{Input, Output, Transaction}
 use types.{BlacklistNode, DirectorySetNode, node_key_tn, origin_node_tn}
 use utils.{
@@ -12,6 +12,7 @@ use utils.{
 }
 
 /// Validate that a directory node output has the correct structure
+/// QUESTION: should the `transfer_logic_script: Credential` and `issuer_logic_script: Credential` be empty for the origin node?
 pub fn validate_directory_node_output(
   output: Output,
   node_cs: PolicyId,
@@ -112,21 +113,23 @@ pub fn validate_directory_init(
   mint: Value,
   node_cs: PolicyId,
 ) -> Bool {
-  // No node inputs should be spent
-  expect list.is_empty(node_inputs)
-
   // Exactly one node output
   expect [node_output] = node_outputs
   let node = validate_directory_node_output(node_output, node_cs)
 
-  // Node must be empty (origin node)
-  expect node.key == #"" && node.next == #""
-
   // Must mint exactly one origin token
   let minted = quantity_of(mint, node_cs, origin_node_tn)
-  expect minted == 1
-
-  True
+  and {
+    // No node inputs should be spent
+    list.is_empty(node_inputs),
+    // Node must be empty (origin node)
+    node.key == #"",
+    node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    node.transfer_logic_script == VerificationKey(#""),
+    node.issuer_logic_script == VerificationKey(#""),
+    node.global_state_cs == #"",
+    minted == 1,
+  }
 }
 
 /// Validate blacklist Init: same as directory but for BlacklistNode
@@ -148,7 +151,10 @@ pub fn validate_blacklist_init(
     list.is_empty(node_inputs),
     // Node must be empty (origin node)
     node.key == #"",
-    node.next == #"",
+    node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    node.transfer_logic_script == VerificationKey(#""),
+    node.issuer_logic_script == VerificationKey(#""),
+    node.global_state_cs == #"",
     // Must mint exactly one origin token
     minted == 1,
   }

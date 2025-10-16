@@ -1,12 +1,12 @@
+use aiken/builtin
 // Core data types for CIP-0143 programmable tokens
 // Migrated from SmartTokens.Types.PTokenDirectory and SmartTokens.Types.ProtocolParams
 
 use cardano/address.{Credential}
 use cardano/assets.{PolicyId}
-use aiken/builtin
 
 /// Constants for token names
-pub const origin_node_tn = #"00"
+pub const origin_node_tn = #""
 
 pub const node_key_tn_prefix = #"01"
 
@@ -83,10 +83,7 @@ pub type DirectoryRedeemer {
   /// Initialize the directory with the origin node
   DirectoryInit
   /// Insert a new programmable token policy into the directory
-  DirectoryInsert {
-    key: ByteArray,
-    hashed_param: ByteArray,
-  }
+  DirectoryInsert { key: ByteArray, hashed_param: ByteArray }
 }
 
 /// Redeemer for blacklist minting policy (linked list operations)
