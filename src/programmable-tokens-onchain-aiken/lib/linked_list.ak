@@ -8,7 +8,8 @@ use cardano/assets.{PolicyId, Value, VerificationKey, quantity_of, tokens}
 use cardano/transaction.{Input, Output, Transaction}
 use types.{BlacklistNode, DirectorySetNode, node_key_tn, origin_node_tn}
 use utils.{
-  bytearray_lt, count_unique_tokens, expect_inline_datum, has_currency_symbol,
+  bytearray_lt, check_single_mint, count_unique_tokens, expect_inline_datum,
+  has_currency_symbol,
 }
 
 /// Validate that a directory node output has the correct structure
@@ -117,8 +118,6 @@ pub fn validate_directory_init(
   expect [node_output] = node_outputs
   let node = validate_directory_node_output(node_output, node_cs)
 
-  // Must mint exactly one origin token
-  let minted = quantity_of(mint, node_cs, origin_node_tn)
   and {
     // No node inputs should be spent
     list.is_empty(node_inputs),
@@ -128,7 +127,8 @@ pub fn validate_directory_init(
     node.transfer_logic_script == VerificationKey(#""),
     node.issuer_logic_script == VerificationKey(#""),
     node.global_state_cs == #"",
-    minted == 1,
+    // Must mint exactly one origin token and no other tokens from this policy
+    check_single_mint(mint, node_cs, origin_node_tn, 1),
   }
 }
 
@@ -143,9 +143,6 @@ pub fn validate_blacklist_init(
   expect [node_output] = node_outputs
   let node = validate_blacklist_node_output(node_output, node_cs)
 
-  // Must mint exactly one origin token
-  let minted = quantity_of(mint, node_cs, origin_node_tn)
-
   and {
     // No node inputs should be spent
     list.is_empty(node_inputs),
@@ -155,8 +152,8 @@ pub fn validate_blacklist_init(
     node.transfer_logic_script == VerificationKey(#""),
     node.issuer_logic_script == VerificationKey(#""),
     node.global_state_cs == #"",
-    // Must mint exactly one origin token
-    minted == 1,
+    // Must mint exactly one origin token and no other tokens from this policy
+    check_single_mint(mint, node_cs, origin_node_tn, 1),
   }
 }
 
