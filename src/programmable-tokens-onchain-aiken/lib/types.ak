@@ -16,6 +16,9 @@ pub const protocol_params_token = "ProtocolParams"
 /// Empty Verification Key
 pub const empty_vkey = VerificationKey(#"")
 
+/// Token name for the issuance CBOR hex reference NFT
+pub const issuance_cbor_hex_token_name = "IssuanceCborHex"
+
 /// Directory node in the linked list of registered programmable token policies
 /// This represents an entry in the CIP-0143 registry
 pub type DirectorySetNode {
