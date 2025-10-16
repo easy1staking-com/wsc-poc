@@ -27,6 +27,7 @@ validator directory_mint(
   issuance_cbor_hex_cs: PolicyId,
 ) {
   mint(redeemer: DirectoryRedeemer, policy_id: PolicyId, self: Transaction) {
+    trace @"Starting directory_mint validation"
     // Ensure this is a one-shot minting policy by checking that utxo_ref is spent
     expect
       list.any(self.inputs, fn(input) { input.output_reference == utxo_ref })

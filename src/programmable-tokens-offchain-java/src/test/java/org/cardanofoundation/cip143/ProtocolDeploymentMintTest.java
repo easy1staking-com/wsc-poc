@@ -90,7 +90,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
         // Programmable Logic Global parameterization
         var programmableLogicGlobalParameters = ListPlutusData.of(ConstrPlutusData.of(0, BytesPlutusData.of(protocolParamsContract.getScriptHash())));
-        var programmableLogicGlobalContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(protocolParamsParameters, PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT), PlutusVersion.v3);
+        var programmableLogicGlobalContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(programmableLogicGlobalParameters, PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT), PlutusVersion.v3);
 
         // Programmable Logic Base parameterization
         var programmableLogicBaseParameters = ListPlutusData.of(ConstrPlutusData.of(0,
@@ -149,7 +149,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
         // Directory MINT - NFT, address, datum and value
         var directoryNft = Asset.builder()
-                .name(HexUtil.encodeHexString(new byte[]{0, 0}, true))
+                .name("0x")
                 .value(BigInteger.ONE)
                 .build();
 
@@ -195,12 +195,12 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var tx = new ScriptTx()
                 //spend all wallets (coz we need to burn the bootstrap utxo)
                 .collectFrom(walletUtxos)
-                // Redeemer unused
-                .mintAsset(protocolParamsContract, protocolParamNft, ConstrPlutusData.of(0))
                 // Redeemer is DirectoryInit (constr(0))
                 .mintAsset(directoryContract, directoryNft, ConstrPlutusData.of(0))
                 // Redeemer unused
-                .mintAsset(issuanceContract, issuanceNft, ConstrPlutusData.of(0))
+                .mintAsset(protocolParamsContract, protocolParamNft, ConstrPlutusData.of(1))
+                // Redeemer unused
+                .mintAsset(issuanceContract, issuanceNft, ConstrPlutusData.of(2))
                 // Protocol Params
                 .payToContract(protocolParamsContractAddress.getAddress(), ValueUtil.toAmountList(protocolParamsValue), protocolParamsDatum)
                 // Directory Params
