@@ -44,10 +44,6 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
     private String ISSUANCE_CONTRACT;
 
-    private String getCompiledCodeFor(String contractTitle, List<Validator> validators) {
-        return validators.stream().filter(validator -> validator.title().equals(contractTitle)).findAny().get().compiledCode();
-    }
-
     @BeforeEach
     public void loadContracts() throws Exception {
         var plutus = OBJECT_MAPPER.readValue(this.getClass().getClassLoader().getResourceAsStream("plutus.json"), Plutus.class);
@@ -213,10 +209,17 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 .withSigner(SignerProviders.signerFrom(adminAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
                 .feePayer(adminAccount.baseAddress())
-                .build();
+                .buildAndSign();
 
         log.info("tx: {}", transaction.serializeToHex());
         log.info("tx: {}", OBJECT_MAPPER.writeValueAsString(transaction));
+
+        var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
+        if (result.isSuccessful()) {
+            log.info("submitted: {}", result.getValue());
+        } else {
+            log.warn("error: {}", result.getResponse());
+        }
 
 
     }

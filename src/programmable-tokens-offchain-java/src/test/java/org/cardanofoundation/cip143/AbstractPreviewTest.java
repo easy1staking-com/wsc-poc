@@ -7,6 +7,9 @@ import com.bloxbean.cardano.client.common.model.Networks;
 import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.cardanofoundation.cip143.model.blueprint.Validator;
+
+import java.util.List;
 
 import static com.bloxbean.cardano.client.backend.blockfrost.common.Constants.BLOCKFROST_PREVIEW_URL;
 import static org.cardanofoundation.cip143.PreviewConstants.BLOCKFROST_KEY;
@@ -23,5 +26,9 @@ public abstract class AbstractPreviewTest {
     protected final BFBackendService bfBackendService = new BFBackendService(BLOCKFROST_PREVIEW_URL, BLOCKFROST_KEY);
 
     protected final QuickTxBuilder quickTxBuilder = new QuickTxBuilder(bfBackendService);
+
+    protected String getCompiledCodeFor(String contractTitle, List<Validator> validators) {
+        return validators.stream().filter(validator -> validator.title().equals(contractTitle)).findAny().get().compiledCode();
+    }
 
 }
