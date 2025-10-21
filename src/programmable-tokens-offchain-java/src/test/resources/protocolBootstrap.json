@@ -24,7 +24,7 @@
   "directoryMintParams": {
     "txInput": {
       "txHash": "5fc2f5c07af172ca3a0c9307f31e894b4a932b94eed022d71f8babc1cd94ce89",
-      "outputIndex": 5
+      "outputIndex": 3
     },
     "issuanceScriptHash": "a995782cce25ac08d10270be99464af599a2ce304bccb60cd4d26bd0",
     "scriptHash": "0f85f526fc74302999e50bb63a282fcb09a61e222a6dacc4cccdcf52"

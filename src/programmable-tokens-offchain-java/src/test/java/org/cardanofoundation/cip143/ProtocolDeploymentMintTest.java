@@ -268,7 +268,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var programmableLogicGlobalParams = new ProgrammableLogicGlobalParams(protocolParamsContract.getPolicyId(), programmableLogicGlobalContract.getPolicyId());
         var programmableLogicBaseParams = new ProgrammableLogicBaseParams(programmableLogicGlobalContract.getPolicyId(), programmableLogicBaseContract.getPolicyId());
         var issuanceParams = new IssuanceParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId());
-        var directoryParams = new DirectoryMintParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
+        var directoryParams = new DirectoryMintParams(new TxInput(utxo1.getTxHash(), utxo1.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
         var directorySpendParams = new DirectorySpendParams(protocolParamsContract.getPolicyId(), directorySpendContract.getPolicyId());
 
         var protocolBootstrapParams = new ProtocolBootstrapParams(protocolParams,
