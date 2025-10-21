@@ -4,7 +4,8 @@ public record ProtocolBootstrapParams(ProtocolParams protocolParams,
                                       ProgrammableLogicGlobalParams programmableLogicGlobalPrams,
                                       ProgrammableLogicBaseParams programmableLogicBaseParams,
                                       IssuanceParams issuanceParams,
-                                      DirectoryParams directoryParams,
+                                      DirectoryMintParams directoryMintParams,
+                                      DirectorySpendParams directorySpendParams,
                                       String txHash) {
 
 }

@@ -43,6 +43,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
     private String DIRECTORY_MINT_CONTRACT;
 
+    private String DIRECTORY_SPEND_CONTRACT;
+
     private String ISSUANCE_CBOR_HEX_CONTRACT;
 
     private String ISSUANCE_CONTRACT;
@@ -55,7 +57,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
         PROTOCOL_PARAMS_CONTRACT = getCompiledCodeFor("protocol_params_mint.protocol_params_mint.mint", validators);
         DIRECTORY_MINT_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
-        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
+        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("directory_spend.directory_spend.spend", validators);
         ISSUANCE_CBOR_HEX_CONTRACT = getCompiledCodeFor("issuance_cbor_hex_mint.issuance_cbor_hex_mint.mint", validators);
         ISSUANCE_CONTRACT = getCompiledCodeFor("issuance_mint.issuance_mint.mint", validators);
     }
@@ -63,7 +65,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
     @Test
     public void test() throws Exception {
 
-        var dryRun = false;
+        var dryRun = true;
 
         var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
         if (!utxosOpt.isSuccessful()) {
@@ -90,6 +92,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         // Protocol Params contract parameterization
         var protocolParamsParameters = ListPlutusData.of(utxo1OutputReference);
         var protocolParamsContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(protocolParamsParameters, PROTOCOL_PARAMS_CONTRACT), PlutusVersion.v3);
+        log.info("protocolParamsContract, policy: {}", protocolParamsContract.getPolicyId());
+        log.info("protocolParamsContract, hash: {}", HexUtil.encodeHexString(protocolParamsContract.getScriptHash()));
 
         // Programmable Logic Global parameterization
         var programmableLogicGlobalParameters = ListPlutusData.of(ConstrPlutusData.of(0, BytesPlutusData.of(protocolParamsContract.getScriptHash())));
@@ -114,7 +118,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var issuanceParameters = ListPlutusData.of(utxo2OutputReference);
         var issuanceContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceParameters, ISSUANCE_CBOR_HEX_CONTRACT), PlutusVersion.v3);
 
-        // Directory parameterization
+        // Directory MINT parameterization
         var directoryParameters = ListPlutusData.of(
                 ConstrPlutusData.of(0,
                         BytesPlutusData.of(HexUtil.decodeHexString(utxo1.getTxHash())),
@@ -122,6 +126,14 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 BytesPlutusData.of(issuanceContract.getScriptHash())
         );
         var directoryContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(directoryParameters, DIRECTORY_MINT_CONTRACT), PlutusVersion.v3);
+
+        // Directory SPEND parameterization
+        var directorySpendParameters = ListPlutusData.of(
+                BytesPlutusData.of(protocolParamsContract.getScriptHash())
+        );
+        var directorySpendContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(directorySpendParameters, DIRECTORY_SPEND_CONTRACT), PlutusVersion.v3);
+        var directorySpendContractAddress = AddressProvider.getEntAddress(Credential.fromScript(directorySpendContract.getScriptHash()), network);
+        log.info("directorySpendContractAddress: {}", directorySpendContractAddress.getAddress());
 
 
         // Protocol Params MINT - NFT, address, datum and value
@@ -156,9 +168,6 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 .value(BigInteger.ONE)
                 .build();
 
-        var directoryAddress = AddressProvider.getEntAddress(Credential.fromScript(directoryContract.getScriptHash()), network);
-        log.info("directoryAddress: {}", directoryAddress.getAddress());
-
         var directoryDatum = ConstrPlutusData.of(0,
                 BytesPlutusData.of(""),
                 BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
@@ -176,7 +185,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 ))
                 .build();
 
-        // Directory MINT - NFT, address, datum and value
+        // Issuance MINT - NFT, address, datum and value
         var issuanceNft = Asset.builder()
                 .name(HexUtil.encodeHexString("IssuanceCborHex".getBytes(), true))
                 .value(BigInteger.ONE)
@@ -223,7 +232,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 // Protocol Params
                 .payToContract(protocolParamsContractAddress.getAddress(), ValueUtil.toAmountList(protocolParamsValue), protocolParamsDatum)
                 // Directory Params
-                .payToContract(directoryAddress.getAddress(), ValueUtil.toAmountList(directoryValue), directoryDatum)
+                .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryValue), directoryDatum)
                 // Protocol Params
                 .payToContract(issuanceAddress.getAddress(), ValueUtil.toAmountList(issuanceValue), issuanceDatum)
                 .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
@@ -259,13 +268,15 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var programmableLogicGlobalParams = new ProgrammableLogicGlobalParams(protocolParamsContract.getPolicyId(), programmableLogicGlobalContract.getPolicyId());
         var programmableLogicBaseParams = new ProgrammableLogicBaseParams(programmableLogicGlobalContract.getPolicyId(), programmableLogicBaseContract.getPolicyId());
         var issuanceParams = new IssuanceParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId());
-        var directoryParams = new DirectoryParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
+        var directoryParams = new DirectoryMintParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
+        var directorySpendParams = new DirectorySpendParams(protocolParamsContract.getPolicyId(), directorySpendContract.getPolicyId());
 
         var protocolBootstrapParams = new ProtocolBootstrapParams(protocolParams,
                 programmableLogicGlobalParams,
                 programmableLogicBaseParams,
                 issuanceParams,
                 directoryParams,
+                directorySpendParams,
                 txHash);
 
         log.info("BootstrapParams: {}", OBJECT_MAPPER.writeValueAsString(protocolBootstrapParams));
