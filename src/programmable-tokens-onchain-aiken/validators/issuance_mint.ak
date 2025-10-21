@@ -61,15 +61,15 @@ validator issuance_mint(
 
     and {
       // Validate that the redeemer matches the minting logic credential
-      redeemer.minting_logic_cred == minting_logic_cred,
+      (redeemer.minting_logic_cred == minting_logic_cred)?,
       // substandard minting invoked?
-      list.has(invoked_scripts, minting_logic_cred),
+      list.has(invoked_scripts, minting_logic_cred)?,
       // Check that exactly one minting redeemer matches the minting logic credential
       // This prevents multiple concurrent mints with the same minting logic in one transaction
-      single_mint_with_credential(self.redeemers, redeemer),
+      single_mint_with_credential(self.redeemers, redeemer)?,
       // For POC, we only allow one token name per policy
-      list.length(tokens_for_policy) == 1,
-      valid_minting,
+      (list.length(tokens_for_policy) == 1)?,
+      valid_minting?,
     }
   }
 
