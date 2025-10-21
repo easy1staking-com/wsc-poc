@@ -9,19 +9,17 @@ import com.bloxbean.cardano.client.api.util.ValueUtil;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.blueprint.PlutusBlueprintUtil;
 import com.bloxbean.cardano.client.plutus.blueprint.model.PlutusVersion;
-import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
-import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
+import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.transaction.spec.MultiAsset;
+import com.bloxbean.cardano.client.transaction.spec.TransactionInput;
 import com.bloxbean.cardano.client.transaction.spec.Value;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.startup.AddPortOffsetRule;
 import org.cardanofoundation.cip143.model.blueprint.Plutus;
+import org.cardanofoundation.cip143.model.bootstrap.ProtocolBootstrapParams;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,26 +40,46 @@ public class IssueTokenTest extends AbstractPreviewTest {
 
     private String PROGRAMMABLE_LOGIC_BASE_CONTRACT;
 
+    private ProtocolBootstrapParams protocolBootstrapParams;
 
     @BeforeEach
     public void loadContracts() throws Exception {
+        protocolBootstrapParams = OBJECT_MAPPER.readValue(this.getClass().getClassLoader().getResourceAsStream("protocolBootstrap.json"), ProtocolBootstrapParams.class);
         var plutus = OBJECT_MAPPER.readValue(this.getClass().getClassLoader().getResourceAsStream("plutus.json"), Plutus.class);
         var validators = plutus.validators();
         ISSUANCE_MINT = getCompiledCodeFor("issuance_mint.issuance_mint.mint", validators);
-
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
     }
 
     @Test
     public void test() throws Exception {
 
-        var bootstrapTxHash = "2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5";
+        var bootstrapTxHash = protocolBootstrapParams.txHash();
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
         // Issuance 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:2
 
-        var programmableLogicBaseScriptHash = "7e9ddd4a91775e1e76867f164ebaf2113301f4dc769f24efedbdca24";
+//        var protocolParamsUtxoOpt = bfBackendService.getUtxoService().getTxOutput(bootstrapTxHash, 0);
+//        if (!protocolParamsUtxoOpt.isSuccessful()) {
+//            Assertions.fail("could not fetch protocol params utxo");
+//        }
+//        var protocolParamsUtxo = protocolParamsUtxoOpt.getValue();
+//        log.info("protocolParamsUtxo: {}", protocolParamsUtxo);
+
+        var issuanceUtxoOpt = bfBackendService.getUtxoService().getTxOutput(bootstrapTxHash, 2);
+        if (!issuanceUtxoOpt.isSuccessful()) {
+            Assertions.fail("could not fetch issuance utxo");
+        }
+        var issuanceUtxo = issuanceUtxoOpt.getValue();
+        log.info("issuanceUtxo: {}", issuanceUtxo);
+
+        var issuanceDatum = issuanceUtxo.getInlineDatum();
+        var issuanceData = PlutusData.deserialize(HexUtil.decodeHexString(issuanceDatum));
+        var issuance = OBJECT_MAPPER.writeValueAsString(issuanceData);
+        log.info("issuance: {}", issuance);
+
+        var programmableLogicBaseScriptHash = protocolBootstrapParams.programmableLogicBaseParams().scriptHash();
 
         var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
         if (!utxosOpt.isSuccessful()) {
@@ -109,14 +127,18 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 ))
                 .build();
 
-        var targetAddress = AddressProvider.getEntAddress(Credential.fromScript("97f1c6fa3daa5216fd703eb2c25144cede4145200c396fbab0db1223"), network);
+        var targetAddress = AddressProvider.getEntAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()), network);
 
         var tx = new ScriptTx()
-                .collectFrom(walletUtxos)
+//                .collectFrom(walletUtxos)
                 .withdraw(issueAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(100))
                 // Redeemer is DirectoryInit (constr(0))
                 .mintAsset(issuanceContract, pintToken, issuanceRedeemer)
                 .payToContract(targetAddress.getAddress(), ValueUtil.toAmountList(pintTokenValue), ConstrPlutusData.of(0))
+                .readFrom(TransactionInput.builder()
+                        .transactionId(issuanceUtxo.getTxHash())
+                        .index(issuanceUtxo.getOutputIndex())
+                        .build())
                 .withChangeAddress(adminAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)

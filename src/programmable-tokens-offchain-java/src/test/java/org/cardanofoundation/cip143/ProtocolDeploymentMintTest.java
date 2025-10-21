@@ -21,6 +21,7 @@ import com.bloxbean.cardano.client.util.HexUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.cip143.model.blueprint.Plutus;
+import org.cardanofoundation.cip143.model.bootstrap.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,40 +31,6 @@ import java.util.List;
 
 @Slf4j
 public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
-
-    record TxInput(String txHash, int outputIndex) {
-
-    }
-
-    record ProtocolParams(TxInput txInput, String scriptHash) {
-
-    }
-
-    record ProgrammableLogicGlobalParams(String protocolParamsScriptHash, String scriptHash) {
-
-    }
-
-    record ProgrammableLogicBaseParams(String programmableLogicGlobalScriptHash, String scriptHash) {
-
-    }
-
-    record IssuanceParams(TxInput txInput, String scriptHash) {
-
-    }
-
-    record DirectoryParams(TxInput txInput, String issuanceScriptHash, String scriptHash) {
-
-    }
-
-
-    record ProtocolBootstrapParams(ProtocolParams protocolParams,
-                                   ProgrammableLogicGlobalParams programmableLogicGlobalPrams,
-                                   ProgrammableLogicBaseParams programmableLogicBaseParams,
-                                   IssuanceParams issuanceParams,
-                                   DirectoryParams directoryParams,
-                                   String txHash) {
-
-    }
 
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -94,6 +61,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
     @Test
     public void test() throws Exception {
+
+        var dryRun = false;
 
         var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
         if (!utxosOpt.isSuccessful()) {
@@ -256,23 +225,34 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 .payToContract(directoryAddress.getAddress(), ValueUtil.toAmountList(directoryValue), directoryDatum)
                 // Protocol Params
                 .payToContract(issuanceAddress.getAddress(), ValueUtil.toAmountList(issuanceValue), issuanceDatum)
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
                 .withChangeAddress(adminAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)
                 .withSigner(SignerProviders.signerFrom(adminAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
                 .feePayer(adminAccount.baseAddress())
+                .mergeOutputs(false)
                 .buildAndSign();
 
         log.info("tx: {}", transaction.serializeToHex());
         log.info("tx: {}", OBJECT_MAPPER.writeValueAsString(transaction));
 
-//        var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
-//        if (result.isSuccessful()) {
-//            log.info("submitted: {}", result.getValue());
-//        } else {
-//            log.warn("error: {}", result.getResponse());
-//        }
+        String txHash;
+        if (!dryRun) {
+            var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
+            if (result.isSuccessful()) {
+                txHash = result.getValue();
+                log.info("submitted: {}", result.getValue());
+            } else {
+                txHash = "error";
+                log.warn("error: {}", result.getResponse());
+            }
+
+        } else {
+            txHash = "dummy";
+        }
 
         var protocolParams = new ProtocolParams(new TxInput(utxo1.getTxHash(), utxo1.getOutputIndex()), protocolParamsContract.getPolicyId());
         var programmableLogicGlobalParams = new ProgrammableLogicGlobalParams(protocolParamsContract.getPolicyId(), programmableLogicGlobalContract.getPolicyId());
@@ -285,8 +265,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 programmableLogicBaseParams,
                 issuanceParams,
                 directoryParams,
-                "result.getValue()");
-//                result.getValue());
+                txHash);
 
         log.info("BootstrapParams: {}", OBJECT_MAPPER.writeValueAsString(protocolBootstrapParams));
 

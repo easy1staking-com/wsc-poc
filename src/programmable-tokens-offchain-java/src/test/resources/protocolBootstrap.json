@@ -1,33 +1,33 @@
 {
   "protocolParams": {
     "txInput": {
-      "txHash": "1fccf6fe4ecebd196dfd6cddf4de3a8ff0155ca996994ea1004545047eb36bbd",
+      "txHash": "0c2778d204b5c24fc2ac4be24e778dd99d0a73ba381791b74d1a395a0e24df1d",
       "outputIndex": 0
     },
-    "scriptHash": "29ff427b2e2184c252600099c43160f63b0e7e93cec919427bc07694"
+    "scriptHash": "551f8a1750b6a8c98313715088d80b67753dde0706f3f3c83a811fb8"
   },
   "programmableLogicGlobalPrams": {
-    "protocolParamsScriptHash": "29ff427b2e2184c252600099c43160f63b0e7e93cec919427bc07694",
-    "scriptHash": "68bc0966011c0155f515f55b6e2c83f7776f0b0d8e02826373a0e5d8"
+    "protocolParamsScriptHash": "551f8a1750b6a8c98313715088d80b67753dde0706f3f3c83a811fb8",
+    "scriptHash": "1f8169d0d20dec0c3e4d0327831aee4c8cf98224b6812f6fdedff1a7"
   },
   "programmableLogicBaseParams": {
-    "programmableLogicGlobalScriptHash": "68bc0966011c0155f515f55b6e2c83f7776f0b0d8e02826373a0e5d8",
-    "scriptHash": "7e9ddd4a91775e1e76867f164ebaf2113301f4dc769f24efedbdca24"
+    "programmableLogicGlobalScriptHash": "1f8169d0d20dec0c3e4d0327831aee4c8cf98224b6812f6fdedff1a7",
+    "scriptHash": "e628b3210996aaf1d2a38ada3d250940b7caba6a94739dd9543812b7"
   },
   "issuanceParams": {
     "txInput": {
-      "txHash": "1fccf6fe4ecebd196dfd6cddf4de3a8ff0155ca996994ea1004545047eb36bbd",
+      "txHash": "0c2778d204b5c24fc2ac4be24e778dd99d0a73ba381791b74d1a395a0e24df1d",
       "outputIndex": 5
     },
-    "scriptHash": "794f0fcc06169c539da63306f539f1b838ee03c56c959ceffc369f86"
+    "scriptHash": "0aa09b4c2dc047c9955e4cd14cbab14094e27d43abb7636347983ad6"
   },
   "directoryParams": {
     "txInput": {
-      "txHash": "1fccf6fe4ecebd196dfd6cddf4de3a8ff0155ca996994ea1004545047eb36bbd",
+      "txHash": "0c2778d204b5c24fc2ac4be24e778dd99d0a73ba381791b74d1a395a0e24df1d",
       "outputIndex": 5
     },
-    "issuanceScriptHash": "794f0fcc06169c539da63306f539f1b838ee03c56c959ceffc369f86",
-    "scriptHash": "f71f96498831842cd8ccae92c77e2769e8d4f8e3038099dcb9fa9850"
+    "issuanceScriptHash": "0aa09b4c2dc047c9955e4cd14cbab14094e27d43abb7636347983ad6",
+    "scriptHash": "862923785c8487a109014f9d136fb674b7c1838cc3b8fd744da19a87"
   },
-  "txHash": "2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5"
+  "txHash": "800fa63626fef5a1cae8f8e9f86884621ca4a67b786751e6ef9c26ff96cc4377"
 }
