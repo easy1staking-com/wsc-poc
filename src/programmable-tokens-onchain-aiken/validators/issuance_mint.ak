@@ -8,6 +8,7 @@ use cardano/assets.{PolicyId, flatten, quantity_of}
 use cardano/transaction.{Mint, Output, ScriptPurpose, Transaction}
 use types.{SmartTokenMintingAction}
 
+// Do two tokens with exactly same minting logic credential (issueing credential) then will have same policy id ??
 validator issuance_mint(
   programmable_logic_base: Credential,
   minting_logic_cred: Credential,

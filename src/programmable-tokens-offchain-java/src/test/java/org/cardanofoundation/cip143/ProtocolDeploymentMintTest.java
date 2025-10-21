@@ -21,7 +21,6 @@ import com.bloxbean.cardano.client.util.HexUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.cip143.model.blueprint.Plutus;
-import org.cardanofoundation.cip143.model.blueprint.Validator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +30,41 @@ import java.util.List;
 
 @Slf4j
 public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
+
+    record TxInput(String txHash, int outputIndex) {
+
+    }
+
+    record ProtocolParams(TxInput txInput, String scriptHash) {
+
+    }
+
+    record ProgrammableLogicGlobalParams(String protocolParamsScriptHash, String scriptHash) {
+
+    }
+
+    record ProgrammableLogicBaseParams(String programmableLogicGlobalScriptHash, String scriptHash) {
+
+    }
+
+    record IssuanceParams(TxInput txInput, String scriptHash) {
+
+    }
+
+    record DirectoryParams(TxInput txInput, String issuanceScriptHash, String scriptHash) {
+
+    }
+
+
+    record ProtocolBootstrapParams(ProtocolParams protocolParams,
+                                   ProgrammableLogicGlobalParams programmableLogicGlobalPrams,
+                                   ProgrammableLogicBaseParams programmableLogicBaseParams,
+                                   IssuanceParams issuanceParams,
+                                   DirectoryParams directoryParams,
+                                   String txHash) {
+
+    }
+
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -42,6 +76,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
     private String DIRECTORY_CONTRACT;
 
+    private String ISSUANCE_CBOR_HEX_CONTRACT;
+
     private String ISSUANCE_CONTRACT;
 
     @BeforeEach
@@ -52,7 +88,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
         PROTOCOL_PARAMS_CONTRACT = getCompiledCodeFor("protocol_params_mint.protocol_params_mint.mint", validators);
         DIRECTORY_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
-        ISSUANCE_CONTRACT = getCompiledCodeFor("issuance_cbor_hex_mint.issuance_cbor_hex_mint.mint", validators);
+        ISSUANCE_CBOR_HEX_CONTRACT = getCompiledCodeFor("issuance_cbor_hex_mint.issuance_cbor_hex_mint.mint", validators);
+        ISSUANCE_CONTRACT = getCompiledCodeFor("issuance_mint.issuance_mint.mint", validators);
     }
 
     @Test
@@ -105,7 +142,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         // Issuance Mint parameterization
         // Protocol Params contract parameterization
         var issuanceParameters = ListPlutusData.of(utxo2OutputReference);
-        var issuanceContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceParameters, ISSUANCE_CONTRACT), PlutusVersion.v3);
+        var issuanceContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceParameters, ISSUANCE_CBOR_HEX_CONTRACT), PlutusVersion.v3);
 
         // Directory parameterization
         var directoryParameters = ListPlutusData.of(
@@ -188,6 +225,22 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 ))
                 .build();
 
+        // Issuance Contract Parameterization
+        var dummyPolicyId = "deadbeefcafebabedeadbeefcafebabedeadbeefcafebabedeadbeef";
+        var issuanceDummyParameters = ListPlutusData.of(
+                ConstrPlutusData.of(0,
+                        BytesPlutusData.of(programmableLogicBaseContract.getScriptHash())
+                ),
+                BytesPlutusData.of(HexUtil.decodeHexString(dummyPolicyId))
+        );
+        var issuanceDummyContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceDummyParameters, ISSUANCE_CONTRACT), PlutusVersion.v3);
+        var encodedIssuanceDummyContract = HexUtil.encodeHexString(issuanceDummyContract.serializeScriptBody());
+        var contractParts = encodedIssuanceDummyContract.split(dummyPolicyId);
+
+        var issuanceDatum = ConstrPlutusData.of(0,
+                BytesPlutusData.of(HexUtil.decodeHexString(contractParts[0])),
+                BytesPlutusData.of(HexUtil.decodeHexString(contractParts[1])));
+
         var tx = new ScriptTx()
                 //spend all wallets (coz we need to burn the bootstrap utxo)
                 .collectFrom(walletUtxos)
@@ -202,7 +255,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 // Directory Params
                 .payToContract(directoryAddress.getAddress(), ValueUtil.toAmountList(directoryValue), directoryDatum)
                 // Protocol Params
-                .payToContract(issuanceAddress.getAddress(), ValueUtil.toAmountList(issuanceValue), ConstrPlutusData.of(0))
+                .payToContract(issuanceAddress.getAddress(), ValueUtil.toAmountList(issuanceValue), issuanceDatum)
                 .withChangeAddress(adminAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)
@@ -214,13 +267,28 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         log.info("tx: {}", transaction.serializeToHex());
         log.info("tx: {}", OBJECT_MAPPER.writeValueAsString(transaction));
 
-        var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
-        if (result.isSuccessful()) {
-            log.info("submitted: {}", result.getValue());
-        } else {
-            log.warn("error: {}", result.getResponse());
-        }
+//        var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
+//        if (result.isSuccessful()) {
+//            log.info("submitted: {}", result.getValue());
+//        } else {
+//            log.warn("error: {}", result.getResponse());
+//        }
 
+        var protocolParams = new ProtocolParams(new TxInput(utxo1.getTxHash(), utxo1.getOutputIndex()), protocolParamsContract.getPolicyId());
+        var programmableLogicGlobalParams = new ProgrammableLogicGlobalParams(protocolParamsContract.getPolicyId(), programmableLogicGlobalContract.getPolicyId());
+        var programmableLogicBaseParams = new ProgrammableLogicBaseParams(programmableLogicGlobalContract.getPolicyId(), programmableLogicBaseContract.getPolicyId());
+        var issuanceParams = new IssuanceParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId());
+        var directoryParams = new DirectoryParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
+
+        var protocolBootstrapParams = new ProtocolBootstrapParams(protocolParams,
+                programmableLogicGlobalParams,
+                programmableLogicBaseParams,
+                issuanceParams,
+                directoryParams,
+                "result.getValue()");
+//                result.getValue());
+
+        log.info("BootstrapParams: {}", OBJECT_MAPPER.writeValueAsString(protocolBootstrapParams));
 
     }
 

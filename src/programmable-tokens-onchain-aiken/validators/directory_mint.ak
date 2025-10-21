@@ -42,6 +42,7 @@ validator directory_mint(
       DirectoryInsert { key, hashed_param } -> {
         // Find the issuance CBOR hex reference input
         expect Some(issuance_ref_input) =
+          //should this be a find.any instead of find.some?
           list.find(
             self.reference_inputs,
             fn(input) {
