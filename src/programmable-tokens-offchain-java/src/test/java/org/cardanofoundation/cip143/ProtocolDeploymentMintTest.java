@@ -41,7 +41,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
     private String PROTOCOL_PARAMS_CONTRACT;
 
-    private String DIRECTORY_CONTRACT;
+    private String DIRECTORY_MINT_CONTRACT;
 
     private String ISSUANCE_CBOR_HEX_CONTRACT;
 
@@ -54,7 +54,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT = getCompiledCodeFor("programmable_logic_global.programmable_logic_global.withdraw", validators);
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
         PROTOCOL_PARAMS_CONTRACT = getCompiledCodeFor("protocol_params_mint.protocol_params_mint.mint", validators);
-        DIRECTORY_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
+        DIRECTORY_MINT_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
+        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
         ISSUANCE_CBOR_HEX_CONTRACT = getCompiledCodeFor("issuance_cbor_hex_mint.issuance_cbor_hex_mint.mint", validators);
         ISSUANCE_CONTRACT = getCompiledCodeFor("issuance_mint.issuance_mint.mint", validators);
     }
@@ -120,7 +121,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                         BigIntPlutusData.of(utxo1.getOutputIndex())),
                 BytesPlutusData.of(issuanceContract.getScriptHash())
         );
-        var directoryContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(directoryParameters, DIRECTORY_CONTRACT), PlutusVersion.v3);
+        var directoryContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(directoryParameters, DIRECTORY_MINT_CONTRACT), PlutusVersion.v3);
 
 
         // Protocol Params MINT - NFT, address, datum and value
