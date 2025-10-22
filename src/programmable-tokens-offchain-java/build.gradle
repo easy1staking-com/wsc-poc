@@ -25,6 +25,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
 	implementation 'org.cardanofoundation:cf-cardano-conversions-java:1.2.0'
+    implementation 'com.easy1staking:cardano-client-lib-extensions:0.0.2'
 
 	implementation 'com.bloxbean.cardano:yaci-store-spring-boot-starter:0.1.6'
 	implementation 'com.bloxbean.cardano:yaci-store-utxo-spring-boot-starter:0.1.6'

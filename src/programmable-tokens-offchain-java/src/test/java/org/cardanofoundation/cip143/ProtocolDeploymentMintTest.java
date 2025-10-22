@@ -96,15 +96,12 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         log.info("protocolParamsContract, hash: {}", HexUtil.encodeHexString(protocolParamsContract.getScriptHash()));
 
         // Programmable Logic Global parameterization
-        var programmableLogicGlobalParameters = ListPlutusData.of(ConstrPlutusData.of(0, BytesPlutusData.of(protocolParamsContract.getScriptHash())));
+//        var programmableLogicGlobalParameters = ListPlutusData.of(ConstrPlutusData.of(0, BytesPlutusData.of(protocolParamsContract.getScriptHash())));
+        var programmableLogicGlobalParameters = ListPlutusData.of(BytesPlutusData.of(protocolParamsContract.getScriptHash()));
         var programmableLogicGlobalContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(programmableLogicGlobalParameters, PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT), PlutusVersion.v3);
 
         // Programmable Logic Base parameterization
-        var programmableLogicBaseParameters = ListPlutusData.of(ConstrPlutusData.of(0,
-                        ConstrPlutusData.of(1,
-                                BytesPlutusData.of(programmableLogicGlobalContract.getScriptHash()))
-                )
-        );
+        var programmableLogicBaseParameters = ListPlutusData.of(ConstrPlutusData.of(1, BytesPlutusData.of(programmableLogicGlobalContract.getScriptHash())));
         var programmableLogicBaseContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(programmableLogicBaseParameters, PROGRAMMABLE_LOGIC_BASE_CONTRACT), PlutusVersion.v3);
 
 

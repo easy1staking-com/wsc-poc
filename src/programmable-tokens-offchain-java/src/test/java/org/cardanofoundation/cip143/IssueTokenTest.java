@@ -56,6 +56,8 @@ public class IssueTokenTest extends AbstractPreviewTest {
     @Test
     public void test() throws Exception {
 
+        var dryRun = false;
+
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
@@ -173,7 +175,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 .build();
 
         var directorySpendNft = Asset.builder()
-                .name("0x" )
+                .name("0x")
                 .value(BigInteger.ONE)
                 .build();
 
@@ -285,13 +287,14 @@ public class IssueTokenTest extends AbstractPreviewTest {
         log.info("tx: {}", transaction.serializeToHex());
         log.info("tx: {}", OBJECT_MAPPER.writeValueAsString(transaction));
 
-//        var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
-//        if (result.isSuccessful()) {
-//            log.info("submitted: {}", result.getValue());
-//        } else {
-//            log.warn("error: {}", result.getResponse());
-//        }
-
+        if (!dryRun) {
+            var result = bfBackendService.getTransactionService().submitTransaction(transaction.serialize());
+            if (result.isSuccessful()) {
+                log.info("submitted: {}", result.getValue());
+            } else {
+                log.warn("error: {}", result.getResponse());
+            }
+        }
 
     }
 

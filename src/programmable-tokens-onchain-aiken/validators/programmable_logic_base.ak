@@ -14,22 +14,25 @@ validator programmable_logic_base(stake_cred: Credential) {
     _own_ref: Data,
     self: Transaction,
   ) {
+    trace @"Starting programmable_logic_base validation"
+
     // The programmable logic base validator simply checks that the
     // global programmable logic stake script is invoked in the transaction
     // via the withdraw-zero pattern
-
     // Check that the stake credential is invoked
     // Optimization: check first withdrawal before scanning the rest
     expect [first_wdrl, ..rest_wdrls] = self.withdrawals
     let Pair(first_cred, _amount) = first_wdrl
-
-    first_cred == stake_cred || list.any(
-      rest_wdrls,
-      fn(wdrl) {
-        let Pair(cred, _amount) = wdrl
-        cred == stake_cred
-      },
-    )
+    or {
+      (first_cred == stake_cred)?,
+      list.any(
+        rest_wdrls,
+        fn(wdrl) {
+          let Pair(cred, _amount) = wdrl
+          cred == stake_cred
+        },
+      ),
+    }
   }
 
   else(_) {

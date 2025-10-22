@@ -25,6 +25,7 @@ validator programmable_logic_global(protocol_params_cs: PolicyId) {
     _account: Credential,
     self: Transaction,
   ) {
+    trace @"Starting programmable_logic_global validation"
     // Extract protocol parameters from reference inputs
     let protocol_params_utxo =
       when
