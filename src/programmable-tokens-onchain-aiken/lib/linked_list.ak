@@ -1,6 +1,7 @@
 use aiken/collection/dict
 use aiken/collection/list
-use cardano/address.{Credential}
+use aiken/primitive/bytearray
+use cardano/address.{Credential, Script, VerificationKey}
 // Linked list validation logic for directory and blacklist
 // Migrated from SmartTokens.LinkedList.Common and SmartTokens.LinkedList.BlacklistCommon
 
@@ -159,16 +160,26 @@ pub fn is_inserted_directory_node(
   node: DirectorySetNode,
   insert_key: ByteArray,
   next_key: ByteArray,
-  transfer_logic: Credential,
-  issuer_logic: Credential,
-  global_state_cs: ByteArray,
 ) -> Bool {
   and {
     (node.key == insert_key)?,
     (node.next == next_key)?,
-    (node.transfer_logic_script == transfer_logic)?,
-    (node.issuer_logic_script == issuer_logic)?,
-    (node.global_state_cs == global_state_cs)?,
+    // Validate credentials are properly formed
+    is_valid_credential(node.transfer_logic_script)?,
+    is_valid_credential(node.issuer_logic_script)?,
+    // Validate global_state_cs is valid (can be empty or 28 bytes)
+    (bytearray.length(node.global_state_cs) == 0 || bytearray.length(
+      node.global_state_cs,
+    ) == 28)?,
+  }
+}
+
+/// Validate that a credential is properly formed
+/// Allows empty credentials (for origin node) or valid 28-byte hashes
+pub fn is_valid_credential(cred: Credential) -> Bool {
+  when cred is {
+    VerificationKey(hash) -> bytearray.length(hash) <= 28
+    Script(hash) -> bytearray.length(hash) <= 28
   }
 }
 

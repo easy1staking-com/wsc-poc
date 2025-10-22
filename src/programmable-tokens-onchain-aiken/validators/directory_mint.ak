@@ -95,6 +95,9 @@ validator directory_mint(
             fn(out) { validate_directory_node_output(out, policy_id) },
           )
 
+        trace @"node_outputs, size": list.length(node_outputs)
+        trace @"output_nodes, size": list.length(output_nodes)
+
         // One output must be the updated covering node (key -> insert_key)
         let directory_node_updated =
           list.any(
@@ -107,17 +110,38 @@ validator directory_mint(
           list.any(
             output_nodes,
             fn(node) {
-              is_inserted_directory_node(
-                node,
-                key,
-                covering_node.next,
-                covering_node.transfer_logic_script,
-                covering_node.issuer_logic_script,
-                covering_node.global_state_cs,
-              )
+              is_inserted_directory_node(node, key, covering_node.next)
             },
           )
 
+        // pub fn is_inserted_directory_node(
+        //   node: DirectorySetNode,
+        //   insert_key: ByteArray,
+        //   next_key: ByteArray,
+        //   transfer_logic: Credential,
+        //   issuer_logic: Credential,
+        //   global_state_cs: ByteArray,
+        // ) -> Bool {
+        //   and {
+        //     (node.key == insert_key)?,
+        //     (node.next == next_key)?,
+        //     (node.transfer_logic_script == transfer_logic)?,
+        //     (node.issuer_logic_script == issuer_logic)?,
+        //     (node.global_state_cs == global_state_cs)?,
+        //   }
+        // }
+        // pub type DirectorySetNode {
+        //   /// The key (currency symbol) of the programmable token policy
+        //   key: ByteArray,
+        //   /// The next key in lexicographical order (for linked list traversal)
+        //   next: ByteArray,
+        //   /// The transfer logic script credential that validates token transfers
+        //   transfer_logic_script: Credential,
+        //   /// The issuer logic script credential that handles minting/burning and seizure
+        //   issuer_logic_script: Credential,
+        //   /// Optional global state NFT currency symbol for this policy
+        //   global_state_cs: ByteArray,
+        // }
         and {
           is_token_registered?,
           // Validate key is a valid currency symbol (28 bytes)

@@ -65,14 +65,7 @@ test is_inserted_directory_node_works() {
       global_state_cs: global_state,
     }
 
-  is_inserted_directory_node(
-    node,
-    insert_key,
-    next_key,
-    transfer_logic,
-    issuer_logic,
-    global_state,
-  )
+  is_inserted_directory_node(node, insert_key, next_key)
 }
 
 // Test is_updated_blacklist_node
