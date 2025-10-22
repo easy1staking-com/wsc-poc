@@ -3,7 +3,7 @@ use aiken/builtin
 use cardano/address.{Address, Script}
 use cardano/assets.{ada_asset_name, ada_policy_id, from_asset}
 use cardano/transaction.{Input, NoDatum, Output, OutputReference}
-use types.{BlacklistNode, node_key_tn}
+use types.{BlacklistNode}
 
 // Test data
 const test_utxo_ref = OutputReference { transaction_id: #"00", output_index: 0 }
@@ -30,16 +30,6 @@ test blacklist_insert_validates_key() {
   // Valid key is non-empty
   builtin.length_of_bytearray(valid_key) > 0 && // Empty key is invalid for insert
   builtin.length_of_bytearray(empty_key) == 0
-}
-
-// Test blacklist node token name generation
-test blacklist_node_token_name_generation() {
-  let key = #"aabbccdd"
-  let token_name = node_key_tn(key)
-
-  // Token name should be prefix + key
-  builtin.length_of_bytearray(token_name) == builtin.length_of_bytearray(key) + 1 && // Should start with node key prefix
-  builtin.slice_bytearray(0, 1, token_name) == #"01"
 }
 
 // Test covering node logic for blacklist

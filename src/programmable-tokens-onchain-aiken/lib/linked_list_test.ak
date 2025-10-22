@@ -1,11 +1,10 @@
 // Unit tests for linked list validation logic
-use aiken/builtin
 use cardano/address.{Script}
 use linked_list.{
   is_inserted_blacklist_node, is_inserted_directory_node,
   is_updated_blacklist_node, is_updated_directory_node,
 }
-use types.{BlacklistNode, DirectorySetNode, node_key_tn, origin_node_tn}
+use types.{BlacklistNode, DirectorySetNode}
 use utils.{bytearray_lt}
 
 // Helper to create a test address
@@ -131,15 +130,4 @@ test origin_node_empty_keys() {
     }
 
   origin_node.key == #"" && origin_node.next == #""
-}
-
-// Test token name generation for nodes
-test node_token_names() {
-  let key = #"aabbccdd"
-  let origin_tn = origin_node_tn
-  let node_tn = node_key_tn(key)
-
-  // Origin token name should be #"00"
-  origin_tn == #"" && // Node token name should start with #"01"
-  builtin.slice_bytearray(0, 1, node_tn) == #"01"
 }

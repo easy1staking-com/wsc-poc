@@ -15,7 +15,7 @@ use linked_list.{
 }
 use types.{
   DirectoryInit, DirectoryInsert, DirectoryRedeemer, DirectorySetNode,
-  IssuanceCborHex, node_key_tn,
+  IssuanceCborHex,
 }
 use utils.{
   bytearray_lt, check_single_mint, expect_inline_datum,
@@ -86,8 +86,7 @@ validator directory_mint(
         expect covering_node: DirectorySetNode = covering_datum
 
         // Must mint exactly one node token with the new key
-        let just_single_mint =
-          check_single_mint(self.mint, policy_id, node_key_tn(key), 1)
+        let just_single_mint = check_single_mint(self.mint, policy_id, key, 1)
 
         // Parse the outputs to find the two new nodes
         let output_nodes =

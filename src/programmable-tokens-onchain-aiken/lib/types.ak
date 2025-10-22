@@ -1,4 +1,3 @@
-use aiken/builtin
 // Core data types for CIP-0143 programmable tokens
 // Migrated from SmartTokens.Types.PTokenDirectory and SmartTokens.Types.ProtocolParams
 
@@ -7,8 +6,6 @@ use cardano/assets.{PolicyId}
 
 /// Constants for token names
 pub const origin_node_tn = #""
-
-pub const node_key_tn_prefix = #"01"
 
 /// Protocol parameters NFT token name
 pub const protocol_params_token = "ProtocolParams"
@@ -110,9 +107,4 @@ pub type IssuanceCborHex {
   prefix_cbor_hex: ByteArray,
   /// Postfix bytes of the minting policy script
   postfix_cbor_hex: ByteArray,
-}
-
-/// Helper to create node key token name from a bytearray key
-pub fn node_key_tn(key: ByteArray) -> ByteArray {
-  builtin.append_bytearray(node_key_tn_prefix, key)
 }

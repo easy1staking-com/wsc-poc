@@ -6,9 +6,7 @@ use cardano/address.{Credential}
 
 use cardano/assets.{PolicyId, Value, tokens}
 use cardano/transaction.{Input, Output, Transaction}
-use types.{
-  BlacklistNode, DirectorySetNode, empty_vkey, node_key_tn, origin_node_tn,
-}
+use types.{BlacklistNode, DirectorySetNode, empty_vkey, origin_node_tn}
 use utils.{
   bytearray_lt, check_single_mint, count_unique_tokens, expect_inline_datum,
   has_currency_symbol,
@@ -40,7 +38,7 @@ pub fn validate_directory_node_output(
   let token_pairs = dict.to_pairs(node_tokens)
   expect [Pair(tn, qty)] = token_pairs
   expect qty == 1
-  expect tn == node_key_tn(node.key) || tn == origin_node_tn
+  expect tn == node.key || tn == origin_node_tn
 
   node
 }
@@ -70,7 +68,7 @@ pub fn validate_blacklist_node_output(
   let token_pairs = dict.to_pairs(node_tokens)
   expect [Pair(tn, qty)] = token_pairs
   expect qty == 1
-  expect tn == node_key_tn(node.key) || tn == origin_node_tn
+  expect tn == node.key || tn == origin_node_tn
 
   node
 }

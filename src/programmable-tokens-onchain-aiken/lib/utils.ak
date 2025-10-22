@@ -66,6 +66,12 @@ pub fn check_single_mint(
   let minted = quantity_of(mint, cs, tn)
   let policy_tokens = tokens(mint, cs)
 
+  trace @"cs": cs
+  trace @"tn": tn
+  trace @"expected_amount": expected_amount
+  trace @"minted": minted
+  trace @"policy_tokens": policy_tokens
+
   // Must mint exactly the expected amount and no other tokens from this policy
   minted == expected_amount && dict.size(policy_tokens) == 1
 }

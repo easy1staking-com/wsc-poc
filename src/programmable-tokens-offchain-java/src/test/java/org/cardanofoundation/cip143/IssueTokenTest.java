@@ -168,7 +168,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
         );
 
         var directoryMintNft = Asset.builder()
-                .name("0x")
+                .name("0x01" + HexUtil.encodeHexString(issuanceContract.getScriptHash()))
                 .value(BigInteger.ONE)
                 .build();
 

@@ -14,7 +14,7 @@ use linked_list.{
 }
 use types.{
   BlacklistInit, BlacklistInsert, BlacklistNode, BlacklistRedeemer,
-  BlacklistRemove, node_key_tn,
+  BlacklistRemove,
 }
 use utils.{bytearray_lt, check_single_mint, expect_inline_datum}
 
@@ -45,8 +45,7 @@ validator blacklist_mint(utxo_ref: OutputReference, manager_pkh: ByteArray) {
         expect covering_node: BlacklistNode = covering_datum
 
         // Must mint exactly one node token with the new key
-        let just_single_mint =
-          check_single_mint(self.mint, policy_id, node_key_tn(key), 1)
+        let just_single_mint = check_single_mint(self.mint, policy_id, key, 1)
 
         // Parse the outputs to find the two new nodes
         let output_nodes =
@@ -111,8 +110,7 @@ validator blacklist_mint(utxo_ref: OutputReference, manager_pkh: ByteArray) {
           validate_blacklist_node_output(output_node_out, policy_id)
 
         // Must burn exactly one node token
-        let just_single_burn =
-          check_single_mint(self.mint, policy_id, node_key_tn(key), -1)
+        let just_single_burn = check_single_mint(self.mint, policy_id, key, -1)
 
         // Determine which node is being removed and validate the merge
         let checks =

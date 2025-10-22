@@ -3,7 +3,7 @@ use aiken/builtin
 use cardano/address.{Address, Script}
 use cardano/assets.{ada_asset_name, ada_policy_id, from_asset}
 use cardano/transaction.{Input, NoDatum, Output, OutputReference}
-use types.{DirectorySetNode, node_key_tn}
+use types.{DirectorySetNode}
 
 // Test data
 const test_utxo_ref = OutputReference { transaction_id: #"00", output_index: 0 }
@@ -40,16 +40,6 @@ test directory_insert_validates_key_length() {
   // Valid CS is 28 bytes
   builtin.length_of_bytearray(valid_cs) == 28 && // Invalid CS is not 28 bytes
   builtin.length_of_bytearray(invalid_cs) != 28
-}
-
-// Test node token name generation
-test directory_node_token_name_generation() {
-  let cs = #"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c"
-  let token_name = node_key_tn(cs)
-
-  // Token name should be prefix + CS
-  builtin.length_of_bytearray(token_name) == 29 && // Should start with node key prefix
-  builtin.slice_bytearray(0, 1, token_name) == #"01"
 }
 
 // Test covering node logic
