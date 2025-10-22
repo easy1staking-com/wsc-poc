@@ -236,6 +236,7 @@ public class TransferTokenTest extends AbstractPreviewTest {
                 .withSigner(SignerProviders.signerFrom(adminAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
                 .feePayer(adminAccount.baseAddress())
+                .mergeOutputs(false)
                 .buildAndSign();
 
         log.info("tx: {}", transaction.serializeToHex());
