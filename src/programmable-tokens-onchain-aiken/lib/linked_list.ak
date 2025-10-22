@@ -163,7 +163,13 @@ pub fn is_inserted_directory_node(
   issuer_logic: Credential,
   global_state_cs: ByteArray,
 ) -> Bool {
-  node.key == insert_key && node.next == next_key && node.transfer_logic_script == transfer_logic && node.issuer_logic_script == issuer_logic && node.global_state_cs == global_state_cs
+  and {
+    (node.key == insert_key)?,
+    (node.next == next_key)?,
+    (node.transfer_logic_script == transfer_logic)?,
+    (node.issuer_logic_script == issuer_logic)?,
+    (node.global_state_cs == global_state_cs)?,
+  }
 }
 
 /// Check if a directory node represents the covering node after insertion

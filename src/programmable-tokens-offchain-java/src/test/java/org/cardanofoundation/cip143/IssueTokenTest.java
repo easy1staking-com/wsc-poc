@@ -6,7 +6,6 @@ import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.address.Credential;
 import com.bloxbean.cardano.client.api.model.Amount;
 import com.bloxbean.cardano.client.api.util.ValueUtil;
-import com.bloxbean.cardano.client.crypto.Blake2bUtil;
 import com.bloxbean.cardano.client.function.helper.SignerProviders;
 import com.bloxbean.cardano.client.plutus.blueprint.PlutusBlueprintUtil;
 import com.bloxbean.cardano.client.plutus.blueprint.model.PlutusVersion;
@@ -168,22 +167,28 @@ public class IssueTokenTest extends AbstractPreviewTest {
         );
 
         var directoryMintNft = Asset.builder()
-                .name("0x01" + HexUtil.encodeHexString(issuanceContract.getScriptHash()))
+                .name("0x" + issuanceContract.getPolicyId())
+//                .name("0x01" + HexUtil.encodeHexString(issuanceContract.getScriptHash()))
+                .value(BigInteger.ONE)
+                .build();
+
+        var directorySpendNft = Asset.builder()
+                .name("0x" )
                 .value(BigInteger.ONE)
                 .build();
 
         var directorySpendDatum = ConstrPlutusData.of(0,
                 BytesPlutusData.of(""),
-                BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
+                BytesPlutusData.of(issuanceContract.getScriptHash()),
                 ConstrPlutusData.of(0, BytesPlutusData.of("")),
                 ConstrPlutusData.of(0, BytesPlutusData.of("")),
                 BytesPlutusData.of(""));
 
         var directoryMintDatum = ConstrPlutusData.of(0,
-                BytesPlutusData.of(""),
+                BytesPlutusData.of(issuanceContract.getScriptHash()),
                 BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
-                ConstrPlutusData.of(0, BytesPlutusData.of("")),
-                ConstrPlutusData.of(0, BytesPlutusData.of("")),
+                ConstrPlutusData.of(1, BytesPlutusData.of(substandardTransferContract.getScriptHash())),
+                ConstrPlutusData.of(1, BytesPlutusData.of(substandardIssueContract.getScriptHash())),
                 BytesPlutusData.of(""));
 
         Value directoryMintValue = Value.builder()
@@ -192,6 +197,16 @@ public class IssueTokenTest extends AbstractPreviewTest {
                         MultiAsset.builder()
                                 .policyId(directoryMintContract.getPolicyId())
                                 .assets(List.of(directoryMintNft))
+                                .build()
+                ))
+                .build();
+
+        Value directorySpendValue = Value.builder()
+                .coin(Amount.ada(1).getQuantity())
+                .multiAssets(List.of(
+                        MultiAsset.builder()
+                                .policyId(directoryMintContract.getPolicyId())
+                                .assets(List.of(directorySpendNft))
                                 .build()
                 ))
                 .build();
@@ -223,7 +238,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 .mintAsset(directoryMintContract, directoryMintNft, directoryMintRedeemer)
                 .payToContract(targetAddress.getAddress(), ValueUtil.toAmountList(pintTokenValue), ConstrPlutusData.of(0))
                 // Directory Params
-                .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryMintValue), directorySpendDatum)
+                .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directorySpendValue), directorySpendDatum)
                 // Directory Params
                 .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryMintValue), directoryMintDatum)
                 .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
