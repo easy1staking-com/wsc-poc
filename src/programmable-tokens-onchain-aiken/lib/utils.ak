@@ -176,5 +176,5 @@ pub fn is_programmable_token_registration(
   let computed_cs = apply_hashed_parameter(prefix, postfix, hashed_param)
   let cs_matches = computed_cs == cs_to_insert
 
-  has_minting && cs_matches
+  has_minting? && cs_matches?
 }

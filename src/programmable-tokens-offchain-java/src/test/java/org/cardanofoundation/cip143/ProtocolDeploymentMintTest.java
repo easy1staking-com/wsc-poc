@@ -109,7 +109,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 
 
         // The payment credentials where all prog tokens live
-        var baseProgrammableLogicPaymentCredential = ConstrPlutusData.of(0,
+        var baseProgrammableLogicPaymentCredential = ConstrPlutusData.of(1,
                 BytesPlutusData.of(programmableLogicBaseContract.getScriptHash())
         );
 
@@ -207,10 +207,12 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         // Issuance Contract Parameterization
         var dummyPolicyId = "deadbeefcafebabedeadbeefcafebabedeadbeefcafebabedeadbeef";
         var issuanceDummyParameters = ListPlutusData.of(
-                ConstrPlutusData.of(0,
+                ConstrPlutusData.of(1,
                         BytesPlutusData.of(programmableLogicBaseContract.getScriptHash())
                 ),
-                BytesPlutusData.of(HexUtil.decodeHexString(dummyPolicyId))
+                ConstrPlutusData.of(1,
+                        BytesPlutusData.of(HexUtil.decodeHexString(dummyPolicyId))
+                )
         );
         var issuanceDummyContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceDummyParameters, ISSUANCE_CONTRACT), PlutusVersion.v3);
         var encodedIssuanceDummyContract = HexUtil.encodeHexString(issuanceDummyContract.serializeScriptBody());

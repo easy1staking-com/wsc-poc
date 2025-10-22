@@ -12,12 +12,12 @@ import com.bloxbean.cardano.client.plutus.blueprint.PlutusBlueprintUtil;
 import com.bloxbean.cardano.client.plutus.blueprint.model.PlutusVersion;
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
-import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.transaction.spec.MultiAsset;
 import com.bloxbean.cardano.client.transaction.spec.TransactionInput;
 import com.bloxbean.cardano.client.transaction.spec.Value;
 import com.bloxbean.cardano.client.util.HexUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.cardanofoundation.cip143.model.DirectorySetNode;
@@ -122,22 +122,11 @@ public class IssueTokenTest extends AbstractPreviewTest {
 //                .withSigner(SignerProviders.signerFrom(adminAccount))
 //                .completeAndWait();
 
-//        var easy1PoolId = "pool1qs8pqvhzmks5njvle8297p4qg477662ce4djls4f2t4xucc087u";
-//
-//        var delegateTx = new ScriptTx()
-//                .delegateTo(substandardIssueAddress.getAddress(), easy1PoolId, )
-//                .withChangeAddress(adminAccount.baseAddress());
-//
-//        quickTxBuilder.compose(delegateTx)
-//                .feePayer(adminAccount.baseAddress())
-//                .withSigner(SignerProviders.signerFrom(adminAccount))
-//                .completeAndWait();
-
         var substandardTransferContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(SUBSTANDARD_TRANSFER_CONTRACT, PlutusVersion.v3);
 
         // Issuance Parameterization
         var issuanceParameters = ListPlutusData.of(
-                ConstrPlutusData.of(0,
+                ConstrPlutusData.of(1,
                         BytesPlutusData.of(HexUtil.decodeHexString(programmableLogicBaseScriptHash))
                 ),
                 ConstrPlutusData.of(1,
@@ -145,8 +134,10 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 )
         );
         var issuanceContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceParameters, ISSUANCE_MINT), PlutusVersion.v3);
+        log.info("issuanceContract: {}", issuanceContract.getPolicyId());
 
-        var issuanceRedeemer = ConstrPlutusData.of(0, ConstrPlutusData.of(1, BytesPlutusData.of(substandardIssueContract.getScriptHash())));
+//        var issuanceRedeemer = ConstrPlutusData.of(0, ConstrPlutusData.of(1, BytesPlutusData.of(substandardIssueContract.getScriptHash())));
+        var issuanceRedeemer = ConstrPlutusData.of(0, BytesPlutusData.of(substandardIssueContract.getScriptHash()));
 
         // Directory MINT parameterization
         log.info("protocolBootstrapParams.directoryMintParams(): {}", protocolBootstrapParams.directoryMintParams());
@@ -170,17 +161,23 @@ public class IssueTokenTest extends AbstractPreviewTest {
         log.info("directorySpendContractAddress: {}", directorySpendContractAddress.getAddress());
 
 
-        var hashedParam = Blake2bUtil.blake2bHash224(substandardIssueContract.getScriptHash());
         // Directory MINT - NFT, address, datum and value
         var directoryMintRedeemer = ConstrPlutusData.of(1,
                 BytesPlutusData.of(issuanceContract.getScriptHash()),
-                BytesPlutusData.of(hashedParam)
+                BytesPlutusData.of(substandardIssueContract.getScriptHash())
         );
 
         var directoryMintNft = Asset.builder()
                 .name("0x")
                 .value(BigInteger.ONE)
                 .build();
+
+        var directorySpendDatum = ConstrPlutusData.of(0,
+                BytesPlutusData.of(""),
+                BytesPlutusData.of(HexUtil.decodeHexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
+                ConstrPlutusData.of(0, BytesPlutusData.of("")),
+                ConstrPlutusData.of(0, BytesPlutusData.of("")),
+                BytesPlutusData.of(""));
 
         var directoryMintDatum = ConstrPlutusData.of(0,
                 BytesPlutusData.of(""),
@@ -218,13 +215,19 @@ public class IssueTokenTest extends AbstractPreviewTest {
         var targetAddress = AddressProvider.getEntAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()), network);
 
         var tx = new ScriptTx()
-//                .collectFrom(walletUtxos)
+                .collectFrom(walletUtxos)
                 .collectFrom(directoryUtxo, ConstrPlutusData.of(0))
                 .withdraw(substandardIssueAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(100))
                 // Redeemer is DirectoryInit (constr(0))
                 .mintAsset(issuanceContract, pintToken, issuanceRedeemer)
                 .mintAsset(directoryMintContract, directoryMintNft, directoryMintRedeemer)
                 .payToContract(targetAddress.getAddress(), ValueUtil.toAmountList(pintTokenValue), ConstrPlutusData.of(0))
+                // Directory Params
+                .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryMintValue), directorySpendDatum)
+                // Directory Params
+                .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryMintValue), directoryMintDatum)
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
                 .readFrom(TransactionInput.builder()
                                 .transactionId(protocolParamsUtxo.getTxHash())
                                 .index(protocolParamsUtxo.getOutputIndex())
@@ -241,6 +244,27 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 .withSigner(SignerProviders.signerFrom(adminAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
                 .feePayer(adminAccount.baseAddress())
+                .mergeOutputs(false) //<-- this is important! or directory tokens will go to same address
+                .preBalanceTx((txBuilderContext, transaction1) -> {
+                    var outputs = transaction1.getBody().getOutputs();
+                    if (outputs.getFirst().getAddress().equals(adminAccount.baseAddress())) {
+                        log.info("found dummy input, moving it...");
+                        var first = outputs.removeFirst();
+                        outputs.addLast(first);
+                    }
+                    try {
+                        log.info("pre tx: {}", OBJECT_MAPPER.writeValueAsString(transaction1));
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .postBalanceTx((txBuilderContext, transaction1) -> {
+                    try {
+                        log.info("post tx: {}", OBJECT_MAPPER.writeValueAsString(transaction1));
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .buildAndSign();
 
         log.info("tx: {}", transaction.serializeToHex());

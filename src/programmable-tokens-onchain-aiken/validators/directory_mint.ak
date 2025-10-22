@@ -120,17 +120,17 @@ validator directory_mint(
           )
 
         and {
-          is_token_registered,
+          is_token_registered?,
           // Validate key is a valid currency symbol (28 bytes)
-          bytearray.length(key) == 28,
+          (bytearray.length(key) == 28)?,
           // The covering node must cover the key to insert
-          bytearray_lt(covering_node.key, key),
-          bytearray_lt(key, covering_node.next),
-          just_single_mint,
+          bytearray_lt(covering_node.key, key)?,
+          bytearray_lt(key, covering_node.next)?,
+          just_single_mint?,
           // Must have exactly 2 outputs: the updated covering node and the new inserted node
-          list.length(output_nodes) == 2,
-          directory_node_updated,
-          directory_node_inserted,
+          (list.length(output_nodes) == 2)?,
+          directory_node_updated?,
+          directory_node_inserted?,
         }
       }
     }
