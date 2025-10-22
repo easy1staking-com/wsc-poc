@@ -119,13 +119,8 @@ fn validate_transfer(
     )
 
   let output_prog_value = sum_output_values(prog_outputs)
-  and {
-    // Validate this is a rewarding script (withdraw-zero trick)
-    // Note: We check against prog_logic_cred since that's the stake credential being used
-    is_rewarding_script(tx.redeemers, prog_logic_cred),
-    // The output must contain all the validated programmable tokens
-    value_contains(output_prog_value, validated_prog_value),
-  }
+  // The output must contain all the validated programmable tokens
+  value_contains(output_prog_value, validated_prog_value)?
 }
 
 /// Validate a seize action
@@ -344,21 +339,4 @@ fn validate_single_cs(
       }
     }
   }
-}
-
-/// Check if this is a rewarding script (withdraw-zero trick)
-fn is_rewarding_script(
-  redeemers: Pairs<transaction.ScriptPurpose, transaction.Redeemer>,
-  account: Credential,
-) -> Bool {
-  list.any(
-    redeemers,
-    fn(pair) {
-      let Pair(purpose, _redeemer) = pair
-      when purpose is {
-        transaction.Withdraw(cred) -> cred == account
-        _ -> False
-      }
-    },
-  )
 }

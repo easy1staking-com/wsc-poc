@@ -21,12 +21,8 @@ import com.bloxbean.cardano.client.transaction.spec.TransactionInput;
 import com.bloxbean.cardano.client.transaction.spec.Value;
 import com.bloxbean.cardano.client.util.HexUtil;
 import com.easy1staking.cardano.model.AssetType;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.cardanofoundation.cip143.blueprint.types.model.TokenProof;
-import org.cardanofoundation.cip143.blueprint.types.model.impl.TokenExistsData;
-import org.cardanofoundation.cip143.blueprint.types.model.impl.TransferActData;
 import org.cardanofoundation.cip143.model.blueprint.Plutus;
 import org.cardanofoundation.cip143.model.bootstrap.ProtocolBootstrapParams;
 import org.junit.jupiter.api.Assertions;
@@ -34,7 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -67,8 +62,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
-        var progToken = AssetType.fromUnit("85a98661f613cc71bb474be7090f016ff97304afbee803663e4553f050494e54");
-        var directoryNftUnit = "b61431c7b16238cab52450d1c568385c491d62e4ddfb0ec0d32832c485a98661f613cc71bb474be7090f016ff97304afbee803663e4553f0";
+        var progToken = AssetType.fromUnit("f9c97d39fcc4db2feaac093aae8ace86e383a603bc35fe9cf8d25d5b50494e54");
+        var directoryNftUnit = "3f3ed5a133a7241dc61c3e640577456c062a093f9524f9661b5c3101f9c97d39fcc4db2feaac093aae8ace86e383a603bc35fe9cf8d25d5b";
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
@@ -116,7 +111,6 @@ public class TransferTokenTest extends AbstractPreviewTest {
 //                .withSigner(SignerProviders.signerFrom(adminAccount))
 //                .completeAndWait();
 
-        // Programmable Logic Base parameterization
         // Programmable Logic Base parameterization
         var programmableLogicBaseParameters = ListPlutusData.of(ConstrPlutusData.of(1, BytesPlutusData.of(programmableLogicGlobalContract.getScriptHash())));
         var programmableLogicBaseContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(programmableLogicBaseParameters, PROGRAMMABLE_LOGIC_BASE_CONTRACT), PlutusVersion.v3);
@@ -211,27 +205,21 @@ public class TransferTokenTest extends AbstractPreviewTest {
 //  }
 //}
 
-        var programmableGlobalRedeemer = ConstrPlutusData.of(1,
+        var programmableGlobalRedeemer = ConstrPlutusData.of(0,
                 // only one prop and it's a list
-                BigIntPlutusData.of(0),
-                BigIntPlutusData.of(0),
-                BigIntPlutusData.of(0)
+                ListPlutusData.of(ConstrPlutusData.of(0, BigIntPlutusData.of(0)))
         );
 
-        TransferActData transferActData = new TransferActData();
-        var tokenProofs = new ArrayList<TokenProof>();
-        var tokenProof = new TokenExistsData();
-        tokenProof.setNodeIdx(BigInteger.ZERO);
-        tokenProofs.add(tokenProof);
-        transferActData.setProofs(tokenProofs);
-
         var tx = new ScriptTx()
+                .collectFrom(walletUtxos)
                 .collectFrom(progTokenUtxo, ConstrPlutusData.of(0))
                 // must be first Provide proofs
-                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, transferActData.toPlutusData())
                 .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
+                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
                 .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
                 .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
                 .readFrom(TransactionInput.builder()
                         .transactionId(protocolParamsUtxo.getTxHash())
                         .index(protocolParamsUtxo.getOutputIndex())
@@ -240,35 +228,14 @@ public class TransferTokenTest extends AbstractPreviewTest {
                         .index(directoryUtxo.getOutputIndex())
                         .build())
                 .attachRewardValidator(substandardTransferContract)
-                .attachSpendingValidator(programmableLogicBaseContract) // base
                 .attachRewardValidator(programmableLogicGlobalContract) // global
+                .attachSpendingValidator(programmableLogicBaseContract) // base
                 .withChangeAddress(adminAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)
                 .withSigner(SignerProviders.signerFrom(adminAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
                 .feePayer(adminAccount.baseAddress())
-                .mergeOutputs(false) //<-- this is important! or directory tokens will go to same address
-                .preBalanceTx((txBuilderContext, transaction1) -> {
-                    var outputs = transaction1.getBody().getOutputs();
-                    if (outputs.getFirst().getAddress().equals(adminAccount.baseAddress())) {
-                        log.info("found dummy input, moving it...");
-                        var first = outputs.removeFirst();
-                        outputs.addLast(first);
-                    }
-                    try {
-                        log.info("pre tx: {}", OBJECT_MAPPER.writeValueAsString(transaction1));
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .postBalanceTx((txBuilderContext, transaction1) -> {
-                    try {
-                        log.info("post tx: {}", OBJECT_MAPPER.writeValueAsString(transaction1));
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
                 .buildAndSign();
 
         log.info("tx: {}", transaction.serializeToHex());
