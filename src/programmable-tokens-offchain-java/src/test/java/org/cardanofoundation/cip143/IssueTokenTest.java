@@ -12,6 +12,7 @@ import com.bloxbean.cardano.client.plutus.blueprint.PlutusBlueprintUtil;
 import com.bloxbean.cardano.client.plutus.blueprint.model.PlutusVersion;
 import com.bloxbean.cardano.client.plutus.spec.*;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
+import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.transaction.spec.MultiAsset;
 import com.bloxbean.cardano.client.transaction.spec.TransactionInput;
@@ -106,8 +107,31 @@ public class IssueTokenTest extends AbstractPreviewTest {
         log.info("directorySetNode: {}", directorySetNode);
 
         var substandardIssueContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(SUBSTANDARD_ISSUE_CONTRACT, PlutusVersion.v3);
-        var issueAddress = AddressProvider.getRewardAddress(Credential.fromKey(substandardIssueContract.getScriptHash()), network);
-        log.info("issueAddress: {}", issueAddress.getAddress());
+        log.info("substandardIssueContract: {}", substandardIssueContract.getPolicyId());
+
+        var substandardIssueAddress = AddressProvider.getRewardAddress(substandardIssueContract, network);
+        log.info("substandardIssueAddress: {}", substandardIssueAddress.getAddress());
+
+//        var registerAddressTx = new Tx()
+//                .from(adminAccount.baseAddress())
+//                .registerStakeAddress(substandardIssueAddress.getAddress())
+//                .withChangeAddress(adminAccount.baseAddress());
+//
+//        quickTxBuilder.compose(registerAddressTx)
+//                .feePayer(adminAccount.baseAddress())
+//                .withSigner(SignerProviders.signerFrom(adminAccount))
+//                .completeAndWait();
+
+//        var easy1PoolId = "pool1qs8pqvhzmks5njvle8297p4qg477662ce4djls4f2t4xucc087u";
+//
+//        var delegateTx = new ScriptTx()
+//                .delegateTo(substandardIssueAddress.getAddress(), easy1PoolId, )
+//                .withChangeAddress(adminAccount.baseAddress());
+//
+//        quickTxBuilder.compose(delegateTx)
+//                .feePayer(adminAccount.baseAddress())
+//                .withSigner(SignerProviders.signerFrom(adminAccount))
+//                .completeAndWait();
 
         var substandardTransferContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(SUBSTANDARD_TRANSFER_CONTRACT, PlutusVersion.v3);
 
@@ -116,11 +140,13 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 ConstrPlutusData.of(0,
                         BytesPlutusData.of(HexUtil.decodeHexString(programmableLogicBaseScriptHash))
                 ),
-                BytesPlutusData.of(substandardIssueContract.getScriptHash())
+                ConstrPlutusData.of(1,
+                        BytesPlutusData.of(substandardIssueContract.getScriptHash())
+                )
         );
         var issuanceContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(issuanceParameters, ISSUANCE_MINT), PlutusVersion.v3);
 
-        var issuanceRedeemer = ConstrPlutusData.of(0, ConstrPlutusData.of(0, BytesPlutusData.of(substandardTransferContract.getScriptHash())));
+        var issuanceRedeemer = ConstrPlutusData.of(0, ConstrPlutusData.of(1, BytesPlutusData.of(substandardIssueContract.getScriptHash())));
 
         // Directory MINT parameterization
         log.info("protocolBootstrapParams.directoryMintParams(): {}", protocolBootstrapParams.directoryMintParams());
@@ -146,7 +172,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
 
         var hashedParam = Blake2bUtil.blake2bHash224(substandardIssueContract.getScriptHash());
         // Directory MINT - NFT, address, datum and value
-        var directoryMintRedeemer = ConstrPlutusData.of(0,
+        var directoryMintRedeemer = ConstrPlutusData.of(1,
                 BytesPlutusData.of(issuanceContract.getScriptHash()),
                 BytesPlutusData.of(hashedParam)
         );
@@ -194,7 +220,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
         var tx = new ScriptTx()
 //                .collectFrom(walletUtxos)
                 .collectFrom(directoryUtxo, ConstrPlutusData.of(0))
-//                .withdraw(issueAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(100))
+                .withdraw(substandardIssueAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(100))
                 // Redeemer is DirectoryInit (constr(0))
                 .mintAsset(issuanceContract, pintToken, issuanceRedeemer)
                 .mintAsset(directoryMintContract, directoryMintNft, directoryMintRedeemer)
@@ -208,7 +234,7 @@ public class IssueTokenTest extends AbstractPreviewTest {
                                 .index(issuanceUtxo.getOutputIndex())
                                 .build())
                 .attachSpendingValidator(directorySpendContract)
-//                .attachRewardValidator(issuanceContract)
+                .attachRewardValidator(substandardIssueContract)
                 .withChangeAddress(adminAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)

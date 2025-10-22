@@ -28,17 +28,28 @@ validator directory_mint(
 ) {
   mint(redeemer: DirectoryRedeemer, policy_id: PolicyId, self: Transaction) {
     trace @"Starting directory_mint validation"
-    // Ensure this is a one-shot minting policy by checking that utxo_ref is spent
-    expect
-      list.any(self.inputs, fn(input) { input.output_reference == utxo_ref })
-
     let (node_inputs, node_outputs) = collect_node_ios(self, policy_id)
 
     when redeemer is {
-      DirectoryInit ->
-        // Initialize the directory with an empty origin node
-        validate_directory_init(node_inputs, node_outputs, self.mint, policy_id)
+      DirectoryInit -> {
+        // Ensure this is a one-shot minting policy by checking that utxo_ref is spent
+        let is_utxo_consumed =
+          list.any(
+            self.inputs,
+            fn(input) { input.output_reference == utxo_ref },
+          )
 
+        // Initialize the directory with an empty origin node
+        and {
+          is_utxo_consumed?,
+          validate_directory_init(
+            node_inputs,
+            node_outputs,
+            self.mint,
+            policy_id,
+          )?,
+        }
+      }
       DirectoryInsert { key, hashed_param } -> {
         // Find the issuance CBOR hex reference input
         expect Some(issuance_ref_input) =

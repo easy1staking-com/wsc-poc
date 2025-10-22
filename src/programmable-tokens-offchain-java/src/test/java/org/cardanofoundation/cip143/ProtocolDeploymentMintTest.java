@@ -65,7 +65,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
     @Test
     public void test() throws Exception {
 
-        var dryRun = true;
+        var dryRun = false;
 
         var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
         if (!utxosOpt.isSuccessful()) {
