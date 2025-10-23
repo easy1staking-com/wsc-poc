@@ -62,8 +62,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
-        var progToken = AssetType.fromUnit("f9c97d39fcc4db2feaac093aae8ace86e383a603bc35fe9cf8d25d5b50494e54");
-        var directoryNftUnit = "3f3ed5a133a7241dc61c3e640577456c062a093f9524f9661b5c3101f9c97d39fcc4db2feaac093aae8ace86e383a603bc35fe9cf8d25d5b";
+        var progToken = AssetType.fromUnit("6c444a1674d91a7eb7b7a3da86d77c4949ac22f2db0f8bcb3a08726350494e54");
+        var directoryNftUnit = "c34a4dd51ee0ce7da5cd91f28597356ee4fd9753df49db1413c1fad26c444a1674d91a7eb7b7a3da86d77c4949ac22f2db0f8bcb3a087263";
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
@@ -214,8 +214,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
                 .collectFrom(walletUtxos)
                 .collectFrom(progTokenUtxo, ConstrPlutusData.of(0))
                 // must be first Provide proofs
-                .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
                 .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
+                .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
                 .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
                 .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
                 .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
