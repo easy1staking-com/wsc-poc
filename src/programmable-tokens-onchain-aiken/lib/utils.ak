@@ -5,7 +5,7 @@ use aiken/collection/list
 // Migrated from various Plutarch utility modules
 
 use cardano/address.{Credential}
-use cardano/assets.{AssetName, PolicyId, Value, flatten, quantity_of, tokens}
+use cardano/assets.{PolicyId, Value, flatten, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, Input, Output, Transaction}
 
 /// Check if a value contains at least the required amount of a specific asset
@@ -21,10 +21,8 @@ pub fn value_contains(value: Value, required: Value) -> Bool {
 
 /// Get the datum from an output, expecting an inline datum
 pub fn expect_inline_datum(output: Output) -> Data {
-  when output.datum is {
-    InlineDatum(d) -> d
-    _ -> fail @"Expected inline datum"
-  }
+  expect InlineDatum(d) = output.datum
+  d
 }
 
 /// Find an input by a predicate
@@ -48,32 +46,14 @@ pub fn must_find_input(
 
 /// Check if a currency symbol is present in a value
 pub fn has_currency_symbol(value: Value, cs: PolicyId) -> Bool {
-  dict.size(tokens(value, cs)) > 0
+  !dict.is_empty(tokens(value, cs))
 }
 
 /// Count unique tokens in a value (number of distinct currency symbol + token name pairs)
 pub fn count_unique_tokens(value: Value) -> Int {
-  flatten(value) |> list.length
-}
-
-/// Check if exactly one token with a specific token name is minted/burned
-pub fn check_single_mint(
-  mint: Value,
-  cs: PolicyId,
-  tn: AssetName,
-  expected_amount: Int,
-) -> Bool {
-  let minted = quantity_of(mint, cs, tn)
-  let policy_tokens = tokens(mint, cs)
-
-  trace @"cs": cs
-  trace @"tn": tn
-  trace @"expected_amount": expected_amount
-  trace @"minted": minted
-  trace @"policy_tokens": policy_tokens
-
-  // Must mint exactly the expected amount and no other tokens from this policy
-  minted == expected_amount && dict.size(policy_tokens) == 1
+  // Original
+  // flatten(value) |> list.length
+  assets.reduce(value, 0, fn(_policy, _name, _amount, acc) { acc + 1 })
 }
 
 /// Get all outputs paying to a specific credential

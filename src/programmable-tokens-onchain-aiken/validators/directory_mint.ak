@@ -17,10 +17,8 @@ use types.{
   DirectoryInit, DirectoryInsert, DirectoryRedeemer, DirectorySetNode,
   IssuanceCborHex,
 }
-use utils.{
-  bytearray_lt, check_single_mint, expect_inline_datum,
-  is_programmable_token_registration,
-}
+use utils.{bytearray_lt,
+  expect_inline_datum, is_programmable_token_registration}
 
 validator directory_mint(
   utxo_ref: OutputReference,
@@ -86,7 +84,7 @@ validator directory_mint(
         expect covering_node: DirectorySetNode = covering_datum
 
         // Must mint exactly one node token with the new key
-        let just_single_mint = check_single_mint(self.mint, policy_id, key, 1)
+        let just_single_mint = assets.has_nft(self.mint, policy_id, key)
 
         // Parse the outputs to find the two new nodes
         let output_nodes =

@@ -10,7 +10,9 @@ use types.{SmartTokenMintingAction}
 
 // Do two tokens with exactly same minting logic credential (issueing credential) then will have same policy id ??
 validator issuance_mint(
+  // <- static, cosntant hash
   programmable_logic_base: Credential,
+  // <- the hash of the contract of the logic for minting.
   minting_logic_cred: Credential,
 ) {
   mint(

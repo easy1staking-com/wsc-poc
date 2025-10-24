@@ -9,8 +9,7 @@ use cardano/assets.{PolicyId, Value, tokens}
 use cardano/transaction.{Input, Output, Transaction}
 use types.{BlacklistNode, DirectorySetNode, empty_vkey, origin_node_tn}
 use utils.{
-  bytearray_lt, check_single_mint, count_unique_tokens, expect_inline_datum,
-  has_currency_symbol,
+  bytearray_lt, count_unique_tokens, expect_inline_datum, has_currency_symbol,
 }
 
 /// Validate that a directory node output has the correct structure
@@ -129,7 +128,7 @@ pub fn validate_directory_init(
     (node.issuer_logic_script == empty_vkey)?,
     (node.global_state_cs == #"")?,
     // Must mint exactly one origin token and no other tokens from this policy
-    check_single_mint(mint, node_cs, origin_node_tn, 1)?,
+    assets.has_nft(mint, node_cs, origin_node_tn)?,
   }
 }
 
@@ -151,7 +150,7 @@ pub fn validate_blacklist_init(
     node.key == #"",
     node.next == #"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     // Must mint exactly one origin token and no other tokens from this policy
-    check_single_mint(mint, node_cs, origin_node_tn, 1),
+    assets.has_nft(mint, node_cs, origin_node_tn),
   }
 }
 

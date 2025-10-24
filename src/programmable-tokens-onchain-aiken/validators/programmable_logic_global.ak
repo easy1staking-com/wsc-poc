@@ -27,19 +27,15 @@ validator programmable_logic_global(protocol_params_cs: PolicyId) {
   ) {
     trace @"Starting programmable_logic_global validation"
     // Extract protocol parameters from reference inputs
-    let protocol_params_utxo =
-      when
-        list.find(
-          self.reference_inputs,
-          fn(input) {
-            has_currency_symbol(input.output.value, protocol_params_cs)
-          },
-        )
-      is {
-        Some(input) -> input.output
-        None -> fail @"Protocol parameters UTxO not found in reference inputs"
-      }
-
+    let protocol_params_ref_opt =
+      list.find(
+        self.reference_inputs,
+        fn(input) {
+          has_currency_symbol(input.output.value, protocol_params_cs)
+        },
+      )
+    expect Some(protocol_params_ref) = protocol_params_ref_opt
+    let protocol_params_utxo = protocol_params_ref.output
     let params_datum = expect_inline_datum(protocol_params_utxo)
     expect params: ProgrammableLogicGlobalParams = params_datum
 
