@@ -43,19 +43,11 @@ validator issuance_mint(
 
     expect [(_cs, tn, qty)] = tokens_for_policy
 
-    trace @"tokens_for_policy": tokens_for_policy
-    trace @"tn": tn
-    trace @"qty": qty
-
     let valid_minting =
       if qty > 0 {
         // Minting tokens
         // First output must receive the minted tokens at programmable_logic_base
         expect [first_output, ..] = self.outputs
-        trace @"first_output": first_output
-        trace @"programmable_logic_base": programmable_logic_base
-        trace @"first_output.address.payment_credential": first_output.address.payment_credential
-
         and {
           (first_output.address.payment_credential == programmable_logic_base)?,
           (quantity_of(first_output.value, own_policy, tn) == qty)?,
