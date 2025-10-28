@@ -108,15 +108,32 @@ fn validate_transfer(
     )
 
   // Ensure all programmable tokens go to outputs at prog_logic_cred
+  // AND that all such outputs have a stake credential (to prevent token locking)
   let prog_outputs =
     list.filter(
       tx.outputs,
       fn(output) { output.address.payment_credential == prog_logic_cred },
     )
 
+  // Validate that all prog_logic_cred outputs have stake credentials
+  // This prevents permanent token locking
+  let all_outputs_have_staking_credentials =
+    list.all(
+      prog_outputs,
+      fn(output) {
+        when output.address.stake_credential is {
+          Some(Inline(_)) -> True
+          _ -> False
+        }
+      },
+    )
+
   let output_prog_value = sum_output_values(prog_outputs)
   // The output must contain all the validated programmable tokens
-  value_contains(output_prog_value, validated_prog_value)?
+  and {
+    all_outputs_have_staking_credentials?,
+    value_contains(output_prog_value, validated_prog_value)?,
+  }
 }
 
 /// Validate a seize action
@@ -179,26 +196,41 @@ fn validate_seize(
   True
 }
 
-/// Get inputs from prog_logic_cred where the owner has signed or invoked their script
+/// Get inputs from prog_logic_cred and verify ALL have proper authorization
+/// This function enforces ownership by requiring that every input from prog_logic_cred
+/// is authorized by its stake credential (signature or script invocation).
+/// If ANY input lacks authorization, the transaction FAILS.
 fn get_signed_prog_inputs(
   tx: Transaction,
   prog_logic_cred: Credential,
 ) -> List<Input> {
-  list.filter(
-    tx.inputs,
+  // First, collect ALL inputs from prog_logic_cred
+  let prog_cred_inputs =
+    list.filter(
+      tx.inputs,
+      fn(input) { input.output.address.payment_credential == prog_logic_cred },
+    )
+
+  // Verify each input is properly authorized and return them
+  // If any input is NOT authorized, the transaction fails with an error
+  list.map(
+    prog_cred_inputs,
     fn(input) {
-      if input.output.address.payment_credential == prog_logic_cred {
-        // Check if the stake credential has signed or is a script that's invoked
-        when input.output.address.stake_credential is {
-          Some(Inline(stake_cred)) ->
-            when stake_cred is {
-              VerificationKey(pkh) -> is_signed_by(tx, pkh)
-              Script(_hash) -> is_script_invoked(tx, stake_cred)
-            }
-          _ -> False
-        }
-      } else {
-        False
+      expect Some(Inline(stake_cred)) = input.output.address.stake_credential
+
+      when stake_cred is {
+        VerificationKey(pkh) ->
+          if is_signed_by(tx, pkh) {
+            input
+          } else {
+            fail @"Missing required pk witness"
+          }
+        Script(_hash) ->
+          if is_script_invoked(tx, stake_cred) {
+            input
+          } else {
+            fail @"Missing required script witness"
+          }
       }
     },
   )

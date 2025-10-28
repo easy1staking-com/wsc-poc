@@ -54,7 +54,7 @@ test is_inserted_directory_node_works() {
   let next_key = #"cc"
   let transfer_logic = Script(#"11")
   let issuer_logic = Script(#"22")
-  let global_state = #"33"
+  let global_state = #"33333333333333333333333333333333333333333333333333333333"
 
   let node =
     DirectorySetNode {
