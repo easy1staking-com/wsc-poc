@@ -23,6 +23,10 @@ public abstract class AbstractPreviewTest {
 
     protected final Account adminAccount = Account.createFromMnemonic(network, PreviewConstants.ADMIN_MNEMONIC);
 
+    protected final Account aliceAccount = Account.createFromMnemonic(network, PreviewConstants.ADMIN_MNEMONIC, 1, 0);
+
+    protected final Account bobAccount = Account.createFromMnemonic(network, PreviewConstants.ADMIN_MNEMONIC, 2, 0);
+
     protected final BFBackendService bfBackendService = new BFBackendService(BLOCKFROST_PREVIEW_URL, BLOCKFROST_KEY);
 
     protected final QuickTxBuilder quickTxBuilder = new QuickTxBuilder(bfBackendService);

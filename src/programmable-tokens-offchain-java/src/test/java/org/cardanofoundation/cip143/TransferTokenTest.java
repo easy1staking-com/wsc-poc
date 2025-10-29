@@ -62,8 +62,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
-        var progToken = AssetType.fromUnit("6c444a1674d91a7eb7b7a3da86d77c4949ac22f2db0f8bcb3a08726350494e54");
-        var directoryNftUnit = "c34a4dd51ee0ce7da5cd91f28597356ee4fd9753df49db1413c1fad26c444a1674d91a7eb7b7a3da86d77c4949ac22f2db0f8bcb3a087263";
+        var progToken = AssetType.fromUnit("7a0a47da760f2d536fa546b385f1929f939e535a03aa886a21b8f74150494e54");
+        var directoryNftUnit = "51cf13d5516074bd5e4d6807418ae7ad2d3746716b53e0855876af4b7a0a47da760f2d536fa546b385f1929f939e535a03aa886a21b8f741";
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
@@ -77,7 +77,7 @@ public class TransferTokenTest extends AbstractPreviewTest {
         var protocolParamsUtxo = protocolParamsUtxoOpt.getValue();
         log.info("protocolParamsUtxo: {}", protocolParamsUtxo);
 
-        var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
+        var utxosOpt = bfBackendService.getUtxoService().getUtxos(aliceAccount.baseAddress(), 100, 1);
         if (!utxosOpt.isSuccessful() || utxosOpt.getValue().isEmpty()) {
             Assertions.fail("no utxos available");
         }
@@ -100,7 +100,7 @@ public class TransferTokenTest extends AbstractPreviewTest {
         log.info("programmableLogicGlobalContract policy: {}", programmableLogicGlobalContract.getPolicyId());
         var programmableLogicGlobalAddress = AddressProvider.getRewardAddress(programmableLogicGlobalContract, network);
         log.info("programmableLogicGlobalAddress policy: {}", programmableLogicGlobalAddress.getAddress());
-
+//
 //        var registerAddressTx = new Tx()
 //                .from(adminAccount.baseAddress())
 //                .registerStakeAddress(programmableLogicGlobalAddress.getAddress())
@@ -140,12 +140,19 @@ public class TransferTokenTest extends AbstractPreviewTest {
         log.info("directoryUtxo: {}", directoryUtxo);
 
 
-        var programmableLogicAddress = AddressProvider.getEntAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()), network);
-        log.info("programmableLogicAddress: {}", programmableLogicAddress);
-        var progBaseAddressUtxosOpt = bfBackendService.getUtxoService().getUtxos(programmableLogicAddress.getAddress(), 100, 1);
+        var aliceAddress = AddressProvider.getBaseAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()),
+                aliceAccount.getBaseAddress().getDelegationCredential().get(),
+                network);
+        log.info("aliceAddress: {}", aliceAddress);
+        var progBaseAddressUtxosOpt = bfBackendService.getUtxoService().getUtxos(aliceAddress.getAddress(), 100, 1);
         if (!progBaseAddressUtxosOpt.isSuccessful() || progBaseAddressUtxosOpt.getValue().isEmpty()) {
             Assertions.fail("not progBaseAddresses");
         }
+
+        var bobAddress = AddressProvider.getBaseAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()),
+                bobAccount.getBaseAddress().getDelegationCredential().get(),
+                network);
+        log.info("bobAddress: {}", bobAddress);
 
         var progBaseAddressUtxos = progBaseAddressUtxosOpt.getValue();
         progBaseAddressUtxos.forEach(utxo -> log.info("prog tokens utxo: {}", utxo));
@@ -207,19 +214,19 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var programmableGlobalRedeemer = ConstrPlutusData.of(0,
                 // only one prop and it's a list
-                ListPlutusData.of(ConstrPlutusData.of(0, BigIntPlutusData.of(0)))
+                ListPlutusData.of(ConstrPlutusData.of(0, BigIntPlutusData.of(1)))
         );
 
         var tx = new ScriptTx()
                 .collectFrom(walletUtxos)
                 .collectFrom(progTokenUtxo, ConstrPlutusData.of(0))
                 // must be first Provide proofs
-                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
                 .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
-                .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
-                .payToContract(programmableLogicAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
-                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
-                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
+                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
+                .payToContract(aliceAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
+                .payToContract(bobAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
+                .payToAddress(aliceAccount.baseAddress(), Amount.ada(5))
+                .payToAddress(aliceAccount.baseAddress(), Amount.ada(5))
                 .readFrom(TransactionInput.builder()
                         .transactionId(protocolParamsUtxo.getTxHash())
                         .index(protocolParamsUtxo.getOutputIndex())
@@ -227,15 +234,17 @@ public class TransferTokenTest extends AbstractPreviewTest {
                         .transactionId(directoryUtxo.getTxHash())
                         .index(directoryUtxo.getOutputIndex())
                         .build())
-                .attachRewardValidator(substandardTransferContract)
                 .attachRewardValidator(programmableLogicGlobalContract) // global
+                .attachRewardValidator(substandardTransferContract)
                 .attachSpendingValidator(programmableLogicBaseContract) // base
-                .withChangeAddress(adminAccount.baseAddress());
+                .withChangeAddress(aliceAccount.baseAddress());
 
         var transaction = quickTxBuilder.compose(tx)
-                .withSigner(SignerProviders.signerFrom(adminAccount))
+                .withSigner(SignerProviders.signerFrom(aliceAccount))
+                .withSigner(SignerProviders.stakeKeySignerFrom(aliceAccount))
                 .withTxEvaluator(new AikenTransactionEvaluator(bfBackendService))
-                .feePayer(adminAccount.baseAddress())
+                .withRequiredSigners(aliceAccount.getBaseAddress().getDelegationCredentialHash().get())
+                .feePayer(aliceAccount.baseAddress())
                 .mergeOutputs(false)
                 .buildAndSign();
 

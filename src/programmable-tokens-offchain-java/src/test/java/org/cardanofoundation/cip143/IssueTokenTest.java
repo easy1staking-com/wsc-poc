@@ -2,6 +2,7 @@ package org.cardanofoundation.cip143;
 
 import com.bloxbean.cardano.aiken.AikenScriptUtil;
 import com.bloxbean.cardano.aiken.AikenTransactionEvaluator;
+import com.bloxbean.cardano.client.account.Account;
 import com.bloxbean.cardano.client.address.AddressProvider;
 import com.bloxbean.cardano.client.address.Credential;
 import com.bloxbean.cardano.client.api.model.Amount;
@@ -91,8 +92,6 @@ public class IssueTokenTest extends AbstractPreviewTest {
             Assertions.fail("no utxos available");
         }
         var walletUtxos = utxosOpt.getValue();
-
-        var utxo1 = walletUtxos.getFirst();
 
         var directoryUtxoOpt = bfBackendService.getUtxoService().getTxOutput(bootstrapTxHash, 1);
         if (!directoryUtxoOpt.isSuccessful()) {
@@ -229,7 +228,9 @@ public class IssueTokenTest extends AbstractPreviewTest {
                 ))
                 .build();
 
-        var targetAddress = AddressProvider.getEntAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()), network);
+        var targetAddress = AddressProvider.getBaseAddress(Credential.fromScript(protocolBootstrapParams.programmableLogicBaseParams().scriptHash()),
+                aliceAccount.getBaseAddress().getDelegationCredential().get(),
+                network);
 
         var tx = new ScriptTx()
                 .collectFrom(walletUtxos)

@@ -143,7 +143,6 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         log.info("protocolParamsContractAddress: {}", protocolParamsContractAddress.getAddress());
 
         var protocolParamsDatum = ConstrPlutusData.of(0,
-                // FIXME: these are NOT the correct one, just testing if it passes validation
                 BytesPlutusData.of(directoryContract.getScriptHash()),
                 // This is the payment credential for ALL permissioned tokens
                 baseProgrammableLogicPaymentCredential

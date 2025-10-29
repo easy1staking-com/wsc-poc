@@ -3,7 +3,7 @@ use aiken/collection/list
 // This policy handles minting and burning of registered programmable tokens
 // Migrated from SmartTokens.Contracts.Issuance
 
-use cardano/address.{Credential}
+use cardano/address.{Credential, Inline}
 use cardano/assets.{PolicyId, flatten, quantity_of}
 use cardano/transaction.{Mint, Output, ScriptPurpose, Transaction}
 use types.{SmartTokenMintingAction}
@@ -47,7 +47,11 @@ validator issuance_mint(
       if qty > 0 {
         // Minting tokens
         // First output must receive the minted tokens at programmable_logic_base
+        // AND must have a stake credential to prevent permanent token locking
         expect [first_output, ..] = self.outputs
+
+        // Validate that the output has a stake credential
+        expect Some(Inline(_stake_cred)) = first_output.address.stake_credential
         and {
           (first_output.address.payment_credential == programmable_logic_base)?,
           (quantity_of(first_output.value, own_policy, tn) == qty)?,
