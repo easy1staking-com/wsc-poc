@@ -14,7 +14,6 @@ import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
-import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.transaction.spec.MultiAsset;
 import com.bloxbean.cardano.client.transaction.spec.TransactionInput;
@@ -62,8 +61,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
-        var progToken = AssetType.fromUnit("7a0a47da760f2d536fa546b385f1929f939e535a03aa886a21b8f74150494e54");
-        var directoryNftUnit = "51cf13d5516074bd5e4d6807418ae7ad2d3746716b53e0855876af4b7a0a47da760f2d536fa546b385f1929f939e535a03aa886a21b8f741";
+        var progToken = AssetType.fromUnit("14ec60a010aea9d42a3a32232f9311465753230f0edf020ae04e6c8d50494e54");
+        var directoryNftUnit = "3e7f0dfa16278cf7c5aec545e2d5eeee8c6b31888c92f39a71c2b80914ec60a010aea9d42a3a32232f9311465753230f0edf020ae04e6c8d";
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
@@ -217,12 +216,14 @@ public class TransferTokenTest extends AbstractPreviewTest {
                 ListPlutusData.of(ConstrPlutusData.of(0, BigIntPlutusData.of(1)))
         );
 
+        log.info("protocolBootstrapParams.programmableGlobalRefInput(): {}", protocolBootstrapParams.programmableGlobalRefInput());
+
         var tx = new ScriptTx()
                 .collectFrom(walletUtxos)
                 .collectFrom(progTokenUtxo, ConstrPlutusData.of(0))
                 // must be first Provide proofs
-                .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
                 .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
+                .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
                 .payToContract(aliceAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
                 .payToContract(bobAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
                 .payToAddress(aliceAccount.baseAddress(), Amount.ada(5))

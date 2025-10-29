@@ -13,7 +13,9 @@ import com.bloxbean.cardano.client.plutus.spec.BigIntPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.BytesPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ConstrPlutusData;
 import com.bloxbean.cardano.client.plutus.spec.ListPlutusData;
+import com.bloxbean.cardano.client.quicktx.QuickTxBuilder;
 import com.bloxbean.cardano.client.quicktx.ScriptTx;
+import com.bloxbean.cardano.client.quicktx.Tx;
 import com.bloxbean.cardano.client.transaction.spec.Asset;
 import com.bloxbean.cardano.client.transaction.spec.MultiAsset;
 import com.bloxbean.cardano.client.transaction.spec.Value;
@@ -68,11 +70,11 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var dryRun = false;
 
         var utxosOpt = bfBackendService.getUtxoService().getUtxos(adminAccount.baseAddress(), 100, 1);
-        if (!utxosOpt.isSuccessful()) {
-            Assertions.fail("no utxos available");
+        if (!utxosOpt.isSuccessful() || utxosOpt.getValue().size() < 3) {
+            Assertions.fail("no(t enough) utxos available");
         }
-        var walletUtxos = utxosOpt.getValue();
-        walletUtxos.forEach(utxo -> log.info("wallet utxo: {}", utxo));
+        var allWalletUtxos = utxosOpt.getValue();
+        var walletUtxos = utxosOpt.getValue().stream().limit(2).toList();
 
         var utxo1 = walletUtxos.getFirst();
         var utxo2 = walletUtxos.getLast();
@@ -99,6 +101,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
 //        var programmableLogicGlobalParameters = ListPlutusData.of(ConstrPlutusData.of(0, BytesPlutusData.of(protocolParamsContract.getScriptHash())));
         var programmableLogicGlobalParameters = ListPlutusData.of(BytesPlutusData.of(protocolParamsContract.getScriptHash()));
         var programmableLogicGlobalContract = PlutusBlueprintUtil.getPlutusScriptFromCompiledCode(AikenScriptUtil.applyParamToScript(programmableLogicGlobalParameters, PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT), PlutusVersion.v3);
+        var programmableLogicGlobalAddress = AddressProvider.getRewardAddress(programmableLogicGlobalContract, network);
+        log.info("programmableLogicGlobalAddress policy: {}", programmableLogicGlobalAddress.getAddress());
 
         // Programmable Logic Base parameterization
         var programmableLogicBaseParameters = ListPlutusData.of(ConstrPlutusData.of(1, BytesPlutusData.of(programmableLogicGlobalContract.getScriptHash())));
@@ -233,9 +237,15 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 .payToContract(directorySpendContractAddress.getAddress(), ValueUtil.toAmountList(directoryValue), directoryDatum)
                 // Protocol Params
                 .payToContract(issuanceAddress.getAddress(), ValueUtil.toAmountList(issuanceValue), issuanceDatum)
-                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
-                .payToAddress(adminAccount.baseAddress(), Amount.ada(5))
+                .payToAddress(refInputAccount.baseAddress(), Amount.ada(1), programmableLogicBaseContract)
+                .payToAddress(refInputAccount.baseAddress(), Amount.ada(1), programmableLogicGlobalContract)
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(50))
+                .payToAddress(adminAccount.baseAddress(), Amount.ada(50))
                 .withChangeAddress(adminAccount.baseAddress());
+
+//                    .attachRewardValidator(programmableLogicGlobalContract) // global
+//                .attachRewardValidator(substandardTransferContract)
+//                .attachSpendingValidator(programmableLogicBaseContract) // base
 
         var transaction = quickTxBuilder.compose(tx)
                 .withSigner(SignerProviders.signerFrom(adminAccount))
@@ -243,6 +253,7 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 .feePayer(adminAccount.baseAddress())
                 .mergeOutputs(false)
                 .buildAndSign();
+
 
         log.info("tx: {}", transaction.serializeToHex());
         log.info("tx: {}", OBJECT_MAPPER.writeValueAsString(transaction));
@@ -268,6 +279,8 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
         var issuanceParams = new IssuanceParams(new TxInput(utxo2.getTxHash(), utxo2.getOutputIndex()), issuanceContract.getPolicyId());
         var directoryParams = new DirectoryMintParams(new TxInput(utxo1.getTxHash(), utxo1.getOutputIndex()), issuanceContract.getPolicyId(), directoryContract.getPolicyId());
         var directorySpendParams = new DirectorySpendParams(protocolParamsContract.getPolicyId(), directorySpendContract.getPolicyId());
+        var programmableBaseRefInput = new TxInput(txHash, 3);
+        var programmableGlobalRefInput = new TxInput(txHash, 4);
 
         var protocolBootstrapParams = new ProtocolBootstrapParams(protocolParams,
                 programmableLogicGlobalParams,
@@ -275,7 +288,20 @@ public class ProtocolDeploymentMintTest extends AbstractPreviewTest {
                 issuanceParams,
                 directoryParams,
                 directorySpendParams,
+                programmableBaseRefInput,
+                programmableGlobalRefInput,
                 txHash);
+
+        var stakeRegistrationTx = new Tx()
+                .from(adminAccount.baseAddress())
+                .collectFrom(List.of(allWalletUtxos.get(2)))
+                .registerStakeAddress(programmableLogicGlobalAddress.getAddress())
+                .withChangeAddress(adminAccount.baseAddress());
+
+        new QuickTxBuilder(bfBackendService).compose(stakeRegistrationTx)
+                .feePayer(adminAccount.baseAddress())
+                .withSigner(SignerProviders.signerFrom(adminAccount))
+                .completeAndWait();
 
         log.info("BootstrapParams: {}", OBJECT_MAPPER.writeValueAsString(protocolBootstrapParams));
 
