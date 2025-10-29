@@ -2,7 +2,7 @@
 
 ![Aiken](https://img.shields.io/badge/Aiken-v1.0.29-blue)
 ![CIP-143](https://img.shields.io/badge/CIP--143-Based-green)
-![Status](https://img.shields.io/badge/Status-Production--Ready-brightgreen)
+![Status](https://img.shields.io/badge/Status-R&D-yellow)
 
 **Smart contracts for CIP-143 programmable tokens on Cardano, written in Aiken.**
 
@@ -196,9 +196,21 @@ This implementation is based on [CIP-143 (Interoperable Programmable Tokens)](ht
 
 **Note**: CIP-143 has been incorporated into the newer [CIP-113](https://github.com/HarmonicLabs/CIPs/tree/master/CIP-0113) proposal. This implementation follows CIP-143 and includes features useful for regulated tokens. See [CIP-113 Comparison](../../../CIP-113-COMPARISON.md) for differences.
 
-## Security Considerations
+## Development Status
 
-⚠️ **This code has not been audited.** A professional security audit is recommended before production use.
+**Current Status**: Research & Development
+
+This is high-quality research and development code with the following characteristics:
+
+- ✅ All core validators implemented with strong code quality
+- ✅ Registry (directory) operations complete
+- ✅ Token issuance and transfer flows working
+- ✅ Freeze & seize functionality complete
+- ✅ Blacklist system operational
+- ✅ Good test coverage (89 passing tests)
+- ✅ Tested on Preview testnet (limited scope)
+- ⏳ Comprehensive testing required
+- ⏳ Professional security audit pending
 
 **Security features implemented:**
 - ✅ NFT-based registry authenticity
@@ -207,19 +219,13 @@ This implementation is based on [CIP-143 (Interoperable Programmable Tokens)](ht
 - ✅ One-shot minting policies for protocol components
 - ✅ Immutable validation rules post-registration
 - ✅ DDOS prevention mechanisms
-- ✅ Comprehensive test coverage
 
-## Development Status
+## Security Considerations
 
-**Current Status**: Production-Ready (Testnet Verified)
-
-- ✅ All core validators implemented and tested
-- ✅ Registry (directory) operations complete
-- ✅ Token issuance and transfer flows working
-- ✅ Freeze & seize functionality complete
-- ✅ Blacklist system operational
-- ✅ 89 passing tests
-- ⏳ Mainnet deployment pending audit
+⚠️ **Important**: This code has **not been professionally audited** and has only been briefly tested on Preview testnet. While code quality is high, it is **not production-ready**. Do not use with real assets or in production environments without:
+- Comprehensive security audit by qualified professionals
+- Extensive testing across multiple scenarios
+- Thorough review by domain experts
 
 ## Migration from Plutarch
 
