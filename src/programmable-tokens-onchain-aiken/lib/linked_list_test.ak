@@ -4,7 +4,7 @@ use linked_list.{
   is_inserted_blacklist_node, is_inserted_directory_node,
   is_updated_blacklist_node, is_updated_directory_node,
 }
-use types.{BlacklistNode, DirectorySetNode}
+use types.{BlacklistNode, RegistryNode}
 use utils.{bytearray_lt}
 
 // Helper to create a test address
@@ -19,11 +19,11 @@ test is_updated_directory_node_works() {
 
   // let next_key = #"cc"
   let node =
-    DirectorySetNode {
+    RegistryNode {
       key: original_key,
       next: insert_key,
       transfer_logic_script: Script(#"11"),
-      issuer_logic_script: Script(#"22"),
+      third_party_transfer_logic_script: Script(#"22"),
       global_state_cs: #"",
     }
 
@@ -37,11 +37,11 @@ test is_updated_directory_node_negative() {
   let wrong_key = #"dd"
 
   let node =
-    DirectorySetNode {
+    RegistryNode {
       key: original_key,
       next: wrong_key,
       transfer_logic_script: Script(#"11"),
-      issuer_logic_script: Script(#"22"),
+      third_party_transfer_logic_script: Script(#"22"),
       global_state_cs: #"",
     }
 
@@ -53,15 +53,15 @@ test is_inserted_directory_node_works() {
   let insert_key = #"bb"
   let next_key = #"cc"
   let transfer_logic = Script(#"11")
-  let issuer_logic = Script(#"22")
+  let third_party_transfer_logic = Script(#"22")
   let global_state = #"33333333333333333333333333333333333333333333333333333333"
 
   let node =
-    DirectorySetNode {
+    RegistryNode {
       key: insert_key,
       next: next_key,
       transfer_logic_script: transfer_logic,
-      issuer_logic_script: issuer_logic,
+      third_party_transfer_logic_script: third_party_transfer_logic,
       global_state_cs: global_state,
     }
 
@@ -114,11 +114,11 @@ test origin_node_empty_keys() {
 
   // Origin node has empty key and next
   let origin_node =
-    DirectorySetNode {
+    RegistryNode {
       key: empty,
       next: empty,
       transfer_logic_script: Script(#"11"),
-      issuer_logic_script: Script(#"22"),
+      third_party_transfer_logic_script: Script(#"22"),
       global_state_cs: #"",
     }
 

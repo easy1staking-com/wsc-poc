@@ -4,7 +4,7 @@ use cardano/address.{Address, Credential, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, from_asset, merge, negate, zero}
 use cardano/transaction.{Input, NoDatum, Output, OutputReference}
 use types.{
-  DirectorySetNode, ProgrammableLogicGlobalParams, SeizeAct, TokenDoesNotExist,
+  RegistryNode, ProgrammableLogicGlobalParams, ThirdPartyAct, TokenDoesNotExist,
   TokenExists, TransferAct,
 }
 use utils.{bytearray_lt}
@@ -13,14 +13,14 @@ use utils.{bytearray_lt}
 // const test_protocol_params_cs: PolicyId =
 // #"0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c"
 
-const test_directory_node_cs: PolicyId =
+const test_registry_node_cs: PolicyId =
   #"1112131415161718191a1b1c0d0e0f0102030405060708090a0b0c0d"
 
 const test_prog_logic_cred: Credential = Script(#"70726f67")
 
 const test_transfer_logic_cred: Credential = Script(#"7472616e73666572")
 
-const test_issuer_logic_cred: Credential = Script(#"6973737565")
+const test_third_party_transfer_logic_cred: Credential = Script(#"6973737565")
 
 const test_token_cs: PolicyId =
   #"2122232425262728292a2b2c2d2e2f303132333435363738393a3b3c"
@@ -30,10 +30,10 @@ test programmable_logic_global_params_structure() {
   let params =
     ProgrammableLogicGlobalParams {
       prog_logic_cred: test_prog_logic_cred,
-      directory_node_cs: test_directory_node_cs,
+      registry_node_cs: test_registry_node_cs,
     }
 
-  params.prog_logic_cred == test_prog_logic_cred && params.directory_node_cs == test_directory_node_cs
+  params.prog_logic_cred == test_prog_logic_cred && params.registry_node_cs == test_registry_node_cs
 }
 
 // Test TransferAct redeemer
@@ -49,14 +49,14 @@ test transfer_act_redeemer() {
   }
 }
 
-// Test SeizeAct redeemer
-test seize_act_redeemer() {
+// Test ThirdPartyAct redeemer
+test third_party_act_redeemer() {
   let redeemer =
-    SeizeAct { seize_input_idx: 0, seize_output_idx: 1, directory_node_idx: 0 }
+    ThirdPartyAct { seize_input_idx: 0, seize_output_idx: 1, registry_node_idx: 0 }
 
   when redeemer is {
-    SeizeAct { seize_input_idx, seize_output_idx, directory_node_idx } ->
-      seize_input_idx == 0 && seize_output_idx == 1 && directory_node_idx == 0
+    ThirdPartyAct { seize_input_idx, seize_output_idx, registry_node_idx } ->
+      seize_input_idx == 0 && seize_output_idx == 1 && registry_node_idx == 0
     _ -> False
   }
 }
@@ -81,14 +81,14 @@ test token_does_not_exist_proof() {
   }
 }
 
-// Test directory node validation for transfer
-test directory_node_validation_for_transfer() {
+// Test registry node validation for transfer
+test registry_node_validation_for_transfer() {
   let node =
-    DirectorySetNode {
+    RegistryNode {
       key: test_token_cs,
       next: #"ffff",
       transfer_logic_script: test_transfer_logic_cred,
-      issuer_logic_script: test_issuer_logic_cred,
+      third_party_transfer_logic_script: test_third_party_transfer_logic_cred,
       global_state_cs: #"",
     }
 
@@ -104,11 +104,11 @@ test covering_node_logic_for_non_existent_token() {
   let next_key = #"cc"
 
   let covering_node =
-    DirectorySetNode {
+    RegistryNode {
       key: covering_key,
       next: next_key,
       transfer_logic_script: test_transfer_logic_cred,
-      issuer_logic_script: test_issuer_logic_cred,
+      third_party_transfer_logic_script: test_third_party_transfer_logic_cred,
       global_state_cs: #"",
     }
 
@@ -152,11 +152,11 @@ test transfer_logic_script_must_be_invoked() {
   list.has(invoked_scripts, test_transfer_logic_cred)
 }
 
-// Test issuer logic script must be invoked for seize
-test issuer_logic_script_must_be_invoked_for_seize() {
-  let invoked_scripts = [test_issuer_logic_cred, Script(#"6f74686572")]
+// Test third party transfer logic script must be invoked for third party actions
+test third_party_transfer_logic_script_must_be_invoked_for_third_party_actions() {
+  let invoked_scripts = [test_third_party_transfer_logic_cred, Script(#"6f74686572")]
 
-  list.has(invoked_scripts, test_issuer_logic_cred)
+  list.has(invoked_scripts, test_third_party_transfer_logic_cred)
 }
 
 // Test signed prog inputs validation
@@ -235,17 +235,17 @@ test protocol_params_from_reference_inputs() {
   let params =
     ProgrammableLogicGlobalParams {
       prog_logic_cred: test_prog_logic_cred,
-      directory_node_cs: test_directory_node_cs,
+      registry_node_cs: test_registry_node_cs,
     }
 
   // Protocol params should be loaded from reference input
-  params.directory_node_cs == test_directory_node_cs
+  params.registry_node_cs == test_registry_node_cs
 }
 
 // Test invoked scripts via withdrawals
 test invoked_scripts_via_withdrawals() {
   let withdrawals =
-    [Pair(test_transfer_logic_cred, 0), Pair(test_issuer_logic_cred, 0)]
+    [Pair(test_transfer_logic_cred, 0), Pair(test_third_party_transfer_logic_cred, 0)]
 
   let invoked_scripts =
     list.map(
@@ -258,6 +258,6 @@ test invoked_scripts_via_withdrawals() {
 
   list.has(invoked_scripts, test_transfer_logic_cred) && list.has(
     invoked_scripts,
-    test_issuer_logic_cred,
+    test_third_party_transfer_logic_cred,
   )
 }

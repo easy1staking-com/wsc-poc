@@ -50,8 +50,8 @@ public class IssueTokenTest extends AbstractPreviewTest {
         var validators = plutus.validators();
         ISSUANCE_MINT = getCompiledCodeFor("issuance_mint.issuance_mint.mint", validators);
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
-        DIRECTORY_MINT_CONTRACT = getCompiledCodeFor("directory_mint.directory_mint.mint", validators);
-        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("directory_spend.directory_spend.spend", validators);
+        DIRECTORY_MINT_CONTRACT = getCompiledCodeFor("registry_mint.registry_mint.mint", validators);
+        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("registry_spend.registry_spend.spend", validators);
     }
 
     @Test

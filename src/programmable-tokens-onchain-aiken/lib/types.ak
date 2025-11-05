@@ -16,17 +16,17 @@ pub const empty_vkey = VerificationKey(#"")
 /// Token name for the issuance CBOR hex reference NFT
 pub const issuance_cbor_hex_token_name = "IssuanceCborHex"
 
-/// Directory node in the linked list of registered programmable token policies
+/// Registry node in the linked list of registered programmable token policies
 /// This represents an entry in the CIP-0143 registry
-pub type DirectorySetNode {
+pub type RegistryNode {
   /// The key (currency symbol) of the programmable token policy
   key: ByteArray,
   /// The next key in lexicographical order (for linked list traversal)
   next: ByteArray,
   /// The transfer logic script credential that validates token transfers
   transfer_logic_script: Credential,
-  /// The issuer logic script credential that handles minting/burning and seizure
-  issuer_logic_script: Credential,
+  /// The third party transfer logic script credential that handles admin actions (seizure, etc.)
+  third_party_transfer_logic_script: Credential,
   /// Optional global state NFT currency symbol for this policy
   global_state_cs: ByteArray,
 }
@@ -43,15 +43,15 @@ pub type BlacklistNode {
 /// Protocol parameters stored on-chain
 /// This is referenced by all programmable token transactions
 pub type ProgrammableLogicGlobalParams {
-  /// Currency symbol of the directory node NFTs
-  directory_node_cs: PolicyId,
+  /// Currency symbol of the registry node NFTs
+  registry_node_cs: PolicyId,
   /// The programmable logic base credential (payment credential for all programmable token UTxOs)
   prog_logic_cred: Credential,
 }
 
-/// Proof that a token is (or is not) in the directory
-pub type TokenProof {
-  /// Token exists in the directory at this reference input index
+/// Proof that a token is (or is not) in the registry
+pub type RegistryProof {
+  /// Token exists in the registry at this reference input index
   TokenExists { node_idx: Int }
   /// Token does not exist (proof via covering node at this index)
   TokenDoesNotExist { node_idx: Int }
@@ -66,12 +66,12 @@ pub type BlacklistProof {
 /// Redeemer for the global programmable logic stake validator
 pub type ProgrammableLogicGlobalRedeemer {
   /// Transfer action with proofs for each token type
-  TransferAct { proofs: List<TokenProof> }
-  /// Seize action to confiscate tokens from blacklisted address
-  SeizeAct {
+  TransferAct { proofs: List<RegistryProof> }
+  /// Third party action for admin operations (seizure, etc.)
+  ThirdPartyAct {
     seize_input_idx: Int,
     seize_output_idx: Int,
-    directory_node_idx: Int,
+    registry_node_idx: Int,
   }
 }
 
@@ -81,12 +81,12 @@ pub type SmartTokenMintingAction {
   minting_logic_cred: Credential,
 }
 
-/// Redeemer for directory minting policy (linked list operations)
-pub type DirectoryRedeemer {
-  /// Initialize the directory with the origin node
-  DirectoryInit
-  /// Insert a new programmable token policy into the directory
-  DirectoryInsert { key: ByteArray, hashed_param: ByteArray }
+/// Redeemer for registry minting policy (linked list operations)
+pub type RegistryRedeemer {
+  /// Initialize the registry with the origin node
+  RegistryInit
+  /// Insert a new programmable token policy into the registry
+  RegistryInsert { key: ByteArray, hashed_param: ByteArray }
 }
 
 /// Redeemer for blacklist minting policy (linked list operations)

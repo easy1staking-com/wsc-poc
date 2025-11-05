@@ -49,7 +49,7 @@ public class TransferTokenTest extends AbstractPreviewTest {
         protocolBootstrapParams = OBJECT_MAPPER.readValue(this.getClass().getClassLoader().getResourceAsStream("protocolBootstrap.json"), ProtocolBootstrapParams.class);
         var plutus = OBJECT_MAPPER.readValue(this.getClass().getClassLoader().getResourceAsStream("plutus.json"), Plutus.class);
         var validators = plutus.validators();
-        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("directory_spend.directory_spend.spend", validators);
+        DIRECTORY_SPEND_CONTRACT = getCompiledCodeFor("registry_spend.registry_spend.spend", validators);
         PROGRAMMABLE_LOGIC_BASE_CONTRACT = getCompiledCodeFor("programmable_logic_base.programmable_logic_base.spend", validators);
         PROGRAMMABLE_LOGIC_GLOBAL_CONTRACT = getCompiledCodeFor("programmable_logic_global.programmable_logic_global.withdraw", validators);
     }
@@ -61,8 +61,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
 
         var bootstrapTxHash = protocolBootstrapParams.txHash();
 
-        var progToken = AssetType.fromUnit("14ec60a010aea9d42a3a32232f9311465753230f0edf020ae04e6c8d50494e54");
-        var directoryNftUnit = "3e7f0dfa16278cf7c5aec545e2d5eeee8c6b31888c92f39a71c2b80914ec60a010aea9d42a3a32232f9311465753230f0edf020ae04e6c8d";
+        var progToken = AssetType.fromUnit("0befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d150494e54");
+        var directoryNftUnit = "430eee9d0a6a57bd6552133a60bc2a8fe81e9e915ccb2392d7129bc60befd1269cf3b5b41cce136c92c64b45dde93e4bfe11875839b713d1";
 
         // Protocol Params 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:0
         // Directory 2592ff5b2810679c30996c309080a3635071f923b43edb494a87597c1e6a5be5:1
@@ -222,8 +222,8 @@ public class TransferTokenTest extends AbstractPreviewTest {
                 .collectFrom(walletUtxos)
                 .collectFrom(progTokenUtxo, ConstrPlutusData.of(0))
                 // must be first Provide proofs
-                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
                 .withdraw(substandardTransferAddress.getAddress(), BigInteger.ZERO, BigIntPlutusData.of(200))
+                .withdraw(programmableLogicGlobalAddress.getAddress(), BigInteger.ZERO, programmableGlobalRedeemer)
                 .payToContract(aliceAddress.getAddress(), ValueUtil.toAmountList(tokenValue1), ConstrPlutusData.of(0))
                 .payToContract(bobAddress.getAddress(), ValueUtil.toAmountList(tokenValue2), ConstrPlutusData.of(0))
                 .payToAddress(aliceAccount.baseAddress(), Amount.ada(5))
