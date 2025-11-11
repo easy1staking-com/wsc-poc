@@ -19,19 +19,19 @@ use utils.{
 }
 
 fn get_protocol_params_ref(
-  self: Transaction,
   protocol_params_cs: PolicyId,
-) -> Input {
-  let protocol_params_ref_opt =
-    list.find(
-      self.reference_inputs,
-      fn(input) {
-        // we should be able to do quantity of.
-        has_currency_symbol(input.output.value, protocol_params_cs)
-      },
-    )
-  expect Some(protocol_params_ref) = protocol_params_ref_opt
-  protocol_params_ref
+  ref_inputs: List<Input>,
+  return: fn(Input) -> result,
+) -> result {
+  when ref_inputs is {
+    [] -> fail @"Protocol parameters reference input not found"
+    [first_ref, ..rest_refs] ->
+      if has_currency_symbol(first_ref.output.value, protocol_params_cs) {
+        return(first_ref)
+      } else {
+        get_protocol_params_ref(protocol_params_cs, rest_refs, return)
+      }
+  }
 }
 
 validator programmable_logic_global(protocol_params_cs: PolicyId) {
@@ -43,7 +43,8 @@ validator programmable_logic_global(protocol_params_cs: PolicyId) {
     trace @"Starting programmable_logic_global validation"
 
     // Extract protocol parameters from reference inputs
-    let protocol_params_ref = get_protocol_params_ref(self, protocol_params_cs)
+    let protocol_params_ref <-
+      get_protocol_params_ref(protocol_params_cs, self.reference_inputs)
 
     let protocol_params_utxo = protocol_params_ref.output
     let params_datum = expect_inline_datum(protocol_params_utxo)
