@@ -31,7 +31,7 @@ pub fn value_contains_v2(value: Value, required: Value) -> Bool {
 }
 
 // Is there any chance values have same assets.....
-pub fn value_contains_v3(value: Value, required: Value) -> Void {
+pub fn expect_value_contains_v3(value: Value, required: Value) -> Void {
   assets.reduce(
     required,
     Void,

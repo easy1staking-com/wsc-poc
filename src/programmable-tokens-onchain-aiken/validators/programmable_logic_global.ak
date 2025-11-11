@@ -10,13 +10,28 @@ use cardano/assets.{
 }
 use cardano/transaction.{Input, Output, Transaction}
 use types.{
-  RegistryNode, ProgrammableLogicGlobalParams,
-  ProgrammableLogicGlobalRedeemer, ThirdPartyAct, TokenDoesNotExist, TokenExists,
-  RegistryProof, TransferAct,
+  ProgrammableLogicGlobalParams, ProgrammableLogicGlobalRedeemer, RegistryNode,
+  RegistryProof, ThirdPartyAct, TokenDoesNotExist, TokenExists, TransferAct,
 }
 use utils.{
   bytearray_lt, elem_at, expect_inline_datum, has_currency_symbol,
   is_script_invoked, is_signed_by, value_contains,
+}
+
+fn get_protocol_params_ref(
+  self: Transaction,
+  protocol_params_cs: PolicyId,
+) -> Input {
+  let protocol_params_ref_opt =
+    list.find(
+      self.reference_inputs,
+      fn(input) {
+        // we should be able to do quantity of.
+        has_currency_symbol(input.output.value, protocol_params_cs)
+      },
+    )
+  expect Some(protocol_params_ref) = protocol_params_ref_opt
+  protocol_params_ref
 }
 
 validator programmable_logic_global(protocol_params_cs: PolicyId) {
@@ -26,15 +41,10 @@ validator programmable_logic_global(protocol_params_cs: PolicyId) {
     self: Transaction,
   ) {
     trace @"Starting programmable_logic_global validation"
+
     // Extract protocol parameters from reference inputs
-    let protocol_params_ref_opt =
-      list.find(
-        self.reference_inputs,
-        fn(input) {
-          has_currency_symbol(input.output.value, protocol_params_cs)
-        },
-      )
-    expect Some(protocol_params_ref) = protocol_params_ref_opt
+    let protocol_params_ref = get_protocol_params_ref(self, protocol_params_cs)
+
     let protocol_params_utxo = protocol_params_ref.output
     let params_datum = expect_inline_datum(protocol_params_utxo)
     expect params: ProgrammableLogicGlobalParams = params_datum
@@ -158,11 +168,11 @@ fn validate_seize(
   expect registry_node: RegistryNode = registry_datum
 
   // Validate registry node is authentic
-  expect
-    has_currency_symbol(registry_ref_input.output.value, registry_node_cs)
+  expect has_currency_symbol(registry_ref_input.output.value, registry_node_cs)
 
   // The third party transfer logic script must be invoked
-  expect list.has(invoked_scripts, registry_node.third_party_transfer_logic_script)
+  expect
+    list.has(invoked_scripts, registry_node.third_party_transfer_logic_script)
 
   // Get the expected output (seized tokens removed)
   let seize_output = elem_at(tx.outputs, seize_output_idx)
