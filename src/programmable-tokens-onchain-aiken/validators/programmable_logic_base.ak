@@ -25,9 +25,11 @@ validator programmable_logic_base(stake_cred: Credential) {
     let Pair(first_cred, _amount) = first_wdrl
     or {
       (first_cred == stake_cred)?,
+      // csan replace with any directly.
       list.any(
         rest_wdrls,
         fn(wdrl) {
+          // replayce with wdrl.1st same cost but more readable
           let Pair(cred, _amount) = wdrl
           cred == stake_cred
         },
