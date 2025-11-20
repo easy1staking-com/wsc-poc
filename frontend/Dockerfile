@@ -12,7 +12,17 @@ RUN npm ci
 # Copy source files
 COPY . .
 
-# Build the Next.js app (env vars will be provided at runtime)
+# Build-time arguments for Next.js
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_BLOCKFROST_API_KEY
+ARG NETWORK
+
+# Set as env vars so they're available during build
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BLOCKFROST_API_KEY=${NEXT_PUBLIC_BLOCKFROST_API_KEY}
+ENV NETWORK=${NETWORK}
+
+# Build the Next.js app
 RUN npm run build
 
 # Production stage - run Next.js server
@@ -33,10 +43,8 @@ COPY --from=builder /app/next.config.js ./next.config.js
 # Expose Next.js port
 EXPOSE 3000
 
-# Runtime env vars (set these in Kubernetes/docker run):
-# - NEXT_PUBLIC_API_URL (e.g., https://preview-api.programmabletokens.xyz)
-# - NEXT_PUBLIC_BLOCKFROST_API_KEY
-# - NETWORK (Preview, Preprod, or Mainnet)
+# NOTE: NEXT_PUBLIC_* vars must be set at BUILD time (see ARGs above)
+# To change backend URL after build, use Option 2 below
 
 # Start Next.js server
 CMD ["npm", "start"]

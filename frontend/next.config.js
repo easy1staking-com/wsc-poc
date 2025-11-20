@@ -52,7 +52,8 @@ module.exports = (phase, {defaultConfig}) => {
         ]
       },
       async rewrites() {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        // Use API_URL (not NEXT_PUBLIC_*) since rewrites run server-side
+        const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
         return [
           {
             source: '/api/v1/:path*', // Match all routes starting with /api/v1/
@@ -88,7 +89,8 @@ module.exports = (phase, {defaultConfig}) => {
     ],
 
     async rewrites() {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      // Use API_URL (not NEXT_PUBLIC_*) since rewrites run server-side
+      const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
       return [
         {
           source: '/api/v1/:path*',

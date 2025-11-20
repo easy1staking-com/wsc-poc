@@ -9,7 +9,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      # Set these for your environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      # Backend URL for server-side rewrites (runtime config)
+      - API_URL=http://wsc:8080
+      # Build-time variables (if needed by client-side code)
       - NEXT_PUBLIC_BLOCKFROST_API_KEY=preview6rf9Lym3f9XQrTDnxSBbAGwvz5mNafdz
       - NETWORK=Preview
