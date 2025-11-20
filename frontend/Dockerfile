@@ -12,30 +12,31 @@ RUN npm ci
 # Copy source files
 COPY . .
 
-# Accept build arguments
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_BLOCKFROST_API_KEY
-ARG NETWORK=Preview
-
-# Set environment variables for build
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-ENV NEXT_PUBLIC_BLOCKFROST_API_KEY=${NEXT_PUBLIC_BLOCKFROST_API_KEY}
-ENV NETWORK=${NETWORK}
-
-# Build the Next.js app (static export)
+# Build the Next.js app (env vars will be provided at runtime)
 RUN npm run build
 
-# Production stage - serve with nginx
-FROM nginx:alpine
+# Production stage - run Next.js server
+FROM node:20-alpine AS runner
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+WORKDIR /app
 
-# Copy built static files from builder stage
-COPY --from=builder /app/out /usr/share/nginx/html
+# Set NODE_ENV
+ENV NODE_ENV=production
 
-# Expose port 80
-EXPOSE 80
+# Copy necessary files from builder
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/next.config.js ./next.config.js
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Expose Next.js port
+EXPOSE 3000
+
+# Runtime env vars (set these in Kubernetes/docker run):
+# - NEXT_PUBLIC_API_URL (e.g., https://preview-api.programmabletokens.xyz)
+# - NEXT_PUBLIC_BLOCKFROST_API_KEY
+# - NETWORK (Preview, Preprod, or Mainnet)
+
+# Start Next.js server
+CMD ["npm", "start"]

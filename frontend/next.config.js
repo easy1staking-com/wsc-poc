@@ -75,17 +75,36 @@ module.exports = (phase, {defaultConfig}) => {
       webpack: webpackConfig
     }
   }
-  // Default NextJS config for other phases (e.g., production, static export)
-  return { 
-    output: 'export',
+  // Default NextJS config for other phases (e.g., production)
+  return {
     webpack: webpackConfig,
     experimental: {
       esmExternals: true, // Ensure modern module support
     },
-  
+
     // https://github.com/Anastasia-Labs/lucid-evolution/issues/437
     serverExternalPackages: [
       "@lucid-evolution/lucid"
-    ]
+    ],
+
+    async rewrites() {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      return [
+        {
+          source: '/api/v1/:path*',
+          destination: `${apiUrl}/api/v1/:path*`,
+        },
+      ];
+    },
+
+    async redirects() {
+      return [
+        {
+          source: '/',
+          destination: '/connected-wallet',
+          permanent: true,
+        },
+      ];
+    },
   }
 }  

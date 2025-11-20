@@ -20,6 +20,7 @@ export default function WSTAppBar() {
                 width={53}
                 height={39}
                 alt="Logo for WST"
+                unoptimized
                 />
                 <Typography variant='h3'>CIP-0143 Programmable Token Demo</Typography>
             </Box>

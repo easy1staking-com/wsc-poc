@@ -1,16 +1,16 @@
 /**
  * Get the API base URL
- * - In development: returns empty string (uses Next.js rewrites)
- * - In production: returns NEXT_PUBLIC_API_URL for direct API calls
+ * - Returns empty string to use relative URLs
+ * - All API requests go through nginx proxy (dev: Next.js rewrites, prod: nginx reverse proxy)
  */
 export const getApiBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || '';
+  return '';
 };
 
 /**
  * Build a full API endpoint URL
  * @param path - The API path (e.g., '/api/v1/query/address/...')
- * @returns Full URL for the API endpoint
+ * @returns Relative URL for the API endpoint (proxied by nginx/Next.js)
  */
 export const getApiUrl = (path: string): string => {
   const baseUrl = getApiBaseUrl();

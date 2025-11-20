@@ -1,161 +1,165 @@
 # Build Guide
 
-## Multi-Environment Build System
+## Runtime Environment Configuration
 
-The frontend supports building for multiple Cardano networks: Preview, Preprod, and Mainnet.
+The frontend uses **runtime environment variables** instead of build-time configuration. This means:
+- ✅ Build **once**, deploy **everywhere**
+- ✅ No rebuild needed to change configuration
+- ✅ Configure via Kubernetes ConfigMaps/Secrets
 
-## Usage
+## Building
 
-### Building for Different Environments
+### Simple Build
 
 ```bash
-# Build for Preview (default)
+# Build and push with version tag
+./build.sh
+
+# This creates:
+# - easy1staking/programmable-tokens-ui:v1.2.3
+# - easy1staking/programmable-tokens-ui:latest
+```
+
+### Build with Environment Tag (Optional)
+
+```bash
+# Build with environment-specific tag for organization
 ./build.sh preview
 
-# Build for Preprod
-./build.sh preprod
-
-# Build for Mainnet
-./build.sh mainnet
+# This creates:
+# - easy1staking/programmable-tokens-ui:v1.2.3-preview
+# - easy1staking/programmable-tokens-ui:preview-latest
 ```
 
-If no environment is specified, it defaults to `preview`:
-```bash
-./build.sh  # Same as ./build.sh preview
-```
+**Note:** The image is identical regardless of tag. Tags are just for organization.
 
-## Environment Configuration Files
+## Runtime Configuration
 
-Each environment has its own configuration file:
+Set these environment variables when running the container:
 
-- `.env.preview` - Preview testnet configuration
-- `.env.preprod` - Preprod testnet configuration
-- `.env.mainnet` - Mainnet production configuration
-
-### Configuration Format
-
-Each file contains:
-```bash
-NEXT_PUBLIC_BLOCKFROST_API_KEY=<your-blockfrost-key>
-NETWORK=<Preview|Preprod|Mainnet>
-NEXT_PUBLIC_API_URL=<your-backend-api-url>
-```
-
-## Docker Images
-
-The build script creates Docker images with environment-specific tags:
-
-### Image Naming Convention
-
-For a git version `v1.2.3` and environment `preview`:
-- `easy1staking/programmable-tokens-ui:v1.2.3-preview`
-- `easy1staking/programmable-tokens-ui:preview-latest`
-
-### Examples
-
-**Preview:**
-- `programmable-tokens-ui:35e8f85-preview`
-- `programmable-tokens-ui:preview-latest`
-
-**Preprod:**
-- `programmable-tokens-ui:35e8f85-preprod`
-- `programmable-tokens-ui:preprod-latest`
-
-**Mainnet:**
-- `programmable-tokens-ui:35e8f85-mainnet`
-- `programmable-tokens-ui:mainnet-latest`
+- `NEXT_PUBLIC_API_URL` - Backend API URL (e.g., `https://preview-api.programmabletokens.xyz`)
+- `NEXT_PUBLIC_BLOCKFROST_API_KEY` - Blockfrost API key for the network
+- `NETWORK` - Network name (`Preview`, `Preprod`, or `Mainnet`)
 
 ## Deployment
 
-### Kubernetes
-
-Update your Kubernetes deployment to use the environment-specific image:
+### Kubernetes Example
 
 ```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
 spec:
-  containers:
-  - name: frontend
-    image: easy1staking/programmable-tokens-ui:preview-latest
-    # or
-    image: easy1staking/programmable-tokens-ui:mainnet-latest
+  template:
+    spec:
+      containers:
+      - name: frontend
+        image: easy1staking/programmable-tokens-ui:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "https://preview-api.programmabletokens.xyz"
+        - name: NEXT_PUBLIC_BLOCKFROST_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: blockfrost-secrets
+              key: preview-api-key
+        - name: NETWORK
+          value: "Preview"
 ```
 
-### Local Testing
+### Using ConfigMaps and Secrets
 
-To build without pushing to Docker registry, remove the `--push` flag from `build.sh`:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+data:
+  NEXT_PUBLIC_API_URL: "https://preview-api.programmabletokens.xyz"
+  NETWORK: "Preview"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blockfrost-secrets
+type: Opaque
+stringData:
+  preview-api-key: "preview6rf9Lym3f9XQrTDnxSBbAGwvz5mNafdz"
+  preprod-api-key: "preprodYOUR_KEY_HERE"
+  mainnet-api-key: "mainnetYOUR_KEY_HERE"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  template:
+    spec:
+      containers:
+      - name: frontend
+        image: easy1staking/programmable-tokens-ui:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: frontend-config
+        env:
+        - name: NEXT_PUBLIC_BLOCKFROST_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: blockfrost-secrets
+              key: preview-api-key
+```
+
+### Docker Run Example
 
 ```bash
-# In build.sh, line 55, remove:
-  --push \
+docker run -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=https://preview-api.programmabletokens.xyz \
+  -e NEXT_PUBLIC_BLOCKFROST_API_KEY=preview6rf9Lym3f9XQrTDnxSBbAGwvz5mNafdz \
+  -e NETWORK=Preview \
+  easy1staking/programmable-tokens-ui:latest
 ```
 
-## Configuration Before Building
+### Docker Compose
 
-### 1. Update Preprod Configuration
-
-Edit `.env.preprod` and replace:
-- `preprodYOUR_PREPROD_KEY_HERE` with your actual Preprod Blockfrost API key
-- Verify `NEXT_PUBLIC_API_URL` points to your Preprod backend
-
-### 2. Update Mainnet Configuration
-
-Edit `.env.mainnet` and replace:
-- `mainnetYOUR_MAINNET_KEY_HERE` with your actual Mainnet Blockfrost API key
-- Verify `NEXT_PUBLIC_API_URL` points to your Mainnet backend
-
-## Troubleshooting
-
-### Invalid environment error
-
-```
-Error: Invalid environment 'prod'
-Usage: ./build.sh <environment>
-Valid environments: preview, preprod, mainnet
+```bash
+docker-compose up
 ```
 
-**Solution:** Use one of the valid environment names: `preview`, `preprod`, or `mainnet`
+Edit `docker-compose.yml` to set your environment variables.
 
-### Environment file not found
+## Local Development
 
-```
-Error: Environment file '.env.preprod' not found
-```
+```bash
+# Install dependencies
+npm install
 
-**Solution:** Ensure the environment config file exists in the frontend directory
+# Run development server
+npm run dev
 
-### Docker build fails
+# Build for production
+npm run build
 
-**Solution:**
-1. Check that all environment variables in the `.env.<environment>` file are set
-2. Verify Docker is running
-3. Ensure you're logged into Docker Hub: `docker login`
-
-## CI/CD Integration
-
-### GitHub Actions Example
-
-```yaml
-- name: Build and push Docker image
-  run: |
-    cd frontend
-    ./build.sh ${{ matrix.environment }}
-  strategy:
-    matrix:
-      environment: [preview, preprod, mainnet]
+# Start production server
+npm start
 ```
 
-### GitLab CI Example
+## Architecture
 
-```yaml
-build:preview:
-  script:
-    - cd frontend
-    - ./build.sh preview
+- **Next.js 15** with App Router
+- **Server-side rendering** for better performance and SEO
+- **API rewrites** - `/api/v1/*` requests are proxied to backend server-side (no CORS issues)
+- **Port 3000** - Next.js server port
 
-build:mainnet:
-  script:
-    - cd frontend
-    - ./build.sh mainnet
-  only:
-    - main
-```
+## Switching Environments
+
+To switch from Preview to Preprod or Mainnet:
+
+1. Update environment variables in Kubernetes ConfigMap/Secret
+2. Restart pods: `kubectl rollout restart deployment/frontend`
+
+No rebuild required!

@@ -2,35 +2,14 @@
 
 set -e
 
-# Usage: ./build.sh <environment>
-# Example: ./build.sh preview
-# Example: ./build.sh preprod
-# Example: ./build.sh mainnet
+# Usage: ./build.sh [environment-tag]
+# Example: ./build.sh preview  (creates tags: VERSION-preview, preview-latest)
+# Example: ./build.sh          (creates tags: VERSION, latest)
+#
+# Note: Environment variables (API URL, keys, etc.) are now set at RUNTIME
+# via Kubernetes ConfigMaps/Secrets, not at build time.
 
-ENVIRONMENT=${1:-preview}
-
-# Validate environment
-if [[ ! "$ENVIRONMENT" =~ ^(preview|preprod|mainnet)$ ]]; then
-  echo "Error: Invalid environment '$ENVIRONMENT'"
-  echo "Usage: ./build.sh <environment>"
-  echo "Valid environments: preview, preprod, mainnet"
-  exit 1
-fi
-
-# Load environment-specific configuration
-ENV_FILE=".env.${ENVIRONMENT}"
-if [ ! -f "$ENV_FILE" ]; then
-  echo "Error: Environment file '$ENV_FILE' not found"
-  exit 1
-fi
-
-echo "Building for environment: $ENVIRONMENT"
-echo "Loading configuration from: $ENV_FILE"
-
-# Source the environment file
-set -a
-source "$ENV_FILE"
-set +a
+ENVIRONMENT=${1:-""}
 
 # Get version from git
 VERSION=$(git describe --tags --always --dirty)
@@ -38,20 +17,27 @@ echo "Building version: ${VERSION}"
 
 # Docker image naming
 DOCKER_IMAGE_NAME=easy1staking/programmable-tokens-ui
-DOCKER_IMAGE="${DOCKER_IMAGE_NAME}:${VERSION}-${ENVIRONMENT}"
-DOCKER_IMAGE_LATEST="${DOCKER_IMAGE_NAME}:${ENVIRONMENT}-latest"
+
+if [ -n "$ENVIRONMENT" ]; then
+  # Environment-specific tags (for organization)
+  DOCKER_IMAGE="${DOCKER_IMAGE_NAME}:${VERSION}-${ENVIRONMENT}"
+  DOCKER_IMAGE_LATEST="${DOCKER_IMAGE_NAME}:${ENVIRONMENT}-latest"
+  echo "Building with environment tag: $ENVIRONMENT"
+else
+  # Generic tags
+  DOCKER_IMAGE="${DOCKER_IMAGE_NAME}:${VERSION}"
+  DOCKER_IMAGE_LATEST="${DOCKER_IMAGE_NAME}:latest"
+  echo "Building without environment tag"
+fi
 
 echo "Docker images:"
 echo "  - ${DOCKER_IMAGE}"
 echo "  - ${DOCKER_IMAGE_LATEST}"
 
-# Build and push
+# Build and push (no build args needed - everything is runtime now!)
 set -x
 docker build -t "${DOCKER_IMAGE}" \
   -t "${DOCKER_IMAGE_LATEST}" \
-  --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" \
-  --build-arg NEXT_PUBLIC_BLOCKFROST_API_KEY="${NEXT_PUBLIC_BLOCKFROST_API_KEY}" \
-  --build-arg NETWORK="${NETWORK}" \
   --push \
   .
 set +x
@@ -61,3 +47,8 @@ echo "✅ Build complete!"
 echo "Images pushed:"
 echo "  - ${DOCKER_IMAGE}"
 echo "  - ${DOCKER_IMAGE_LATEST}"
+echo ""
+echo "💡 Remember to set runtime environment variables:"
+echo "   - NEXT_PUBLIC_API_URL"
+echo "   - NEXT_PUBLIC_BLOCKFROST_API_KEY"
+echo "   - NETWORK"
