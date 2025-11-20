@@ -9,7 +9,8 @@ let cachedDemoEnvironment: DemoEnvironment | null = null;
 
 const resolveBaseUrl = () => {
   const raw =
-    process.env.NEXT_PUBLIC_API_URL ?? // Production API URL
+    process.env.API_URL ?? // Runtime API URL (preferred)
+    process.env.NEXT_PUBLIC_API_URL ?? // Legacy support
     process.env.API_BASE_URL ??
     process.env.NEXT_PUBLIC_API_BASE_URL ??
     process.env.NEXT_PUBLIC_BACKEND_BASE_URL ??

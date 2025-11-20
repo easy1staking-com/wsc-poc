@@ -7,7 +7,7 @@ import { shallow } from 'zustand/shallow';
 import type { StateCreator } from 'zustand';
 
 // Local Imports
-import { UserName, AccountInfo, Accounts, MenuTab, AccountKey, AlertInfo } from "./types";
+import { UserName, AccountInfo, Accounts, MenuTab, AccountKey, AlertInfo, RuntimeConfig } from "./types";
 import { LucidEvolution } from "@lucid-evolution/lucid";
 
 type AccountsSlice = {
@@ -34,7 +34,12 @@ type LucidSlice = {
   setLucidInstance: (lucid: LucidEvolution) => void;
 };
 
-export type StoreState = AccountsSlice & UiSlice & LucidSlice;
+type ConfigSlice = {
+  config: RuntimeConfig;
+  setConfig: (config: RuntimeConfig) => void;
+};
+
+export type StoreState = AccountsSlice & UiSlice & LucidSlice & ConfigSlice;
 
 const emptyAccount = (): AccountInfo => ({
   regular_address: '',
@@ -164,10 +169,30 @@ const createLucidSlice: StateCreator<
   };
 };
 
+const createConfigSlice: StateCreator<
+  StoreState,
+  [],
+  [],
+  ConfigSlice
+> = (set, _get, _api) => {
+  void _get;
+  void _api;
+  return {
+    config: {
+      blockfrostApiKey: '',
+      network: 'Preview',
+      apiUrl: '',
+      isLoaded: false,
+    },
+    setConfig: (config) => set({ config }),
+  };
+};
+
 const createStore = (set: any, get: any, api: any) => ({
   ...createAccountsSlice(set, get, api),
   ...createUiSlice(set, get, api),
   ...createLucidSlice(set, get, api),
+  ...createConfigSlice(set, get, api),
 });
 
 const mergePersistedState = (persisted: any, currentState: StoreState): StoreState => {

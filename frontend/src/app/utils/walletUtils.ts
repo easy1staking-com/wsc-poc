@@ -8,8 +8,8 @@ import { WalletBalance, DemoEnvironment } from '../store/types';
 import { getApiUrl } from './apiConfig';
 
 export async function makeLucid(demoEnvironment: DemoEnvironment) {
-  const API_KEY_ENV = process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY;
-  const API_KEY = (API_KEY_ENV) ? API_KEY_ENV : demoEnvironment.blockfrost_key;
+  // Use blockfrost key from demoEnvironment (loaded at runtime on server)
+  const API_KEY = demoEnvironment.blockfrost_key;
 
   const blockfrostURL = demoEnvironment.blockfrost_url;
 
@@ -108,7 +108,7 @@ export async function getPolicyIssuer(policyId: string): Promise<string> {
 }
 
 const getBlockfrostProjectId = (demoEnv: DemoEnvironment) =>
-  process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY ?? demoEnv.blockfrost_key;
+  demoEnv.blockfrost_key;
 
 const trimTrailingSlash = (url: string) => url.replace(/\/+$/, '');
 

@@ -26,6 +26,14 @@ export type AlertInfo = {
 };
 export type WalletBalance = { wst: number, ada: number, adaOnlyOutputs: number }
 
+// Runtime configuration loaded from server
+export type RuntimeConfig = {
+  blockfrostApiKey: string;
+  network: string;
+  apiUrl: string;
+  isLoaded: boolean;
+}
+
 // This should correspond to
 // Wst.Server.DemoEnvironment.DemoEnvironment
 export type DemoEnvironment = {

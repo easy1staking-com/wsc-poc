@@ -9,8 +9,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      # Backend URL for server-side rewrites (runtime config)
+      # Runtime configuration (loaded at container startup)
       - API_URL=http://wsc:8080
-      # Build-time variables (if needed by client-side code)
-      - NEXT_PUBLIC_BLOCKFROST_API_KEY=preview6rf9Lym3f9XQrTDnxSBbAGwvz5mNafdz
+      - BLOCKFROST_API_KEY=preview6rf9Lym3f9XQrTDnxSBbAGwvz5mNafdz
       - NETWORK=Preview
