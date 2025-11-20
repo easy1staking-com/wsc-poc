@@ -9,10 +9,8 @@ The frontend uses **runtime environment variables** instead of build-time config
 
 ## Building
 
-### Simple Build
-
 ```bash
-# Build and push with version tag
+# Build and push
 ./build.sh
 
 # This creates:
@@ -20,18 +18,7 @@ The frontend uses **runtime environment variables** instead of build-time config
 # - easy1staking/programmable-tokens-ui:latest
 ```
 
-### Build with Environment Tag (Optional)
-
-```bash
-# Build with environment-specific tag for organization
-./build.sh preview
-
-# This creates:
-# - easy1staking/programmable-tokens-ui:v1.2.3-preview
-# - easy1staking/programmable-tokens-ui:preview-latest
-```
-
-**Note:** The image is identical regardless of tag. Tags are just for organization.
+The same image works for all environments (Preview, Preprod, Mainnet).
 
 ## Runtime Configuration
 
