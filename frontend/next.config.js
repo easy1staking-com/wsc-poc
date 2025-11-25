@@ -51,20 +51,10 @@ module.exports = (phase, {defaultConfig}) => {
           }
         ]
       },
+      // NOTE: Rewrites are evaluated at BUILD time, not RUNTIME!
+      // We use middleware (src/middleware.ts) instead for runtime proxying
       async rewrites() {
-        // Use API_URL (not NEXT_PUBLIC_*) since rewrites run server-side
-        const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        console.log('[next.config.js] Rewrites configured with API_URL:', apiUrl);
-        console.log('[next.config.js] Environment variables:', {
-          API_URL: process.env.API_URL,
-          NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-        });
-        return [
-          {
-            source: '/api/v1/:path*', // Match all routes starting with /api/v1/
-            destination: `${apiUrl}/api/v1/:path*`, // Proxy to backend server
-          },
-        ];
+        return [];
       },
       async redirects() {
         return [
@@ -93,20 +83,10 @@ module.exports = (phase, {defaultConfig}) => {
       "@lucid-evolution/lucid"
     ],
 
+    // NOTE: Rewrites are evaluated at BUILD time, not RUNTIME!
+    // We use middleware (src/middleware.ts) instead for runtime proxying
     async rewrites() {
-      // Use API_URL (not NEXT_PUBLIC_*) since rewrites run server-side
-      const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-      console.log('[next.config.js] Production rewrites configured with API_URL:', apiUrl);
-      console.log('[next.config.js] Environment variables:', {
-        API_URL: process.env.API_URL,
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-      });
-      return [
-        {
-          source: '/api/v1/:path*',
-          destination: `${apiUrl}/api/v1/:path*`,
-        },
-      ];
+      return [];
     },
 
     async redirects() {
